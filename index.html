@@ -25,6 +25,9 @@
   input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;width:100%;color:var(--ink)}
   .btn{display:block;width:100%;padding:12px;border:0;border-radius:10px;background:var(--brand);color:#fff;font:inherit;font-weight:700;font-size:17px}
   .btn.stop{background:#475569}
+  .btn.alt{background:#e8eefc;color:var(--brand);text-align:center;margin-top:8px;font-size:16px;cursor:pointer}
+  .warn{background:var(--latebg);color:var(--late);border:1px solid var(--late);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:15px;line-height:1.5}
+  .warn a{color:inherit;font-weight:700}
   .row{display:flex;gap:8px}
   .row>*{flex:1;min-width:0}
   .row .btn{flex:0 0 auto;width:auto;padding:10px 16px;font-size:16px}
@@ -71,6 +74,7 @@
 </header>
 
 <main>
+  <div id="inapp" class="warn" hidden></div>
   <!-- เข้าสู่ระบบ -->
   <section id="login" class="panel" hidden>
     <h3>เข้าสู่ระบบด้วย PIN ครู</h3>
@@ -100,6 +104,9 @@
         <div id="reader"></div>
         <div id="result" class="result idle"><div class="sub">กด "เปิดกล้อง" แล้วส่องบัตรนักเรียน</div></div>
         <button id="btnCam" class="btn">เปิดกล้อง</button>
+        <label class="btn alt" for="photoInput">📷 ถ่ายรูปบัตร (ใช้เมื่อกล้องสดเปิดไม่ได้)</label>
+        <input id="photoInput" type="file" accept="image/*" capture="environment" hidden>
+        <div id="reader-file" hidden></div>
         <form id="manualForm" class="row" style="margin-top:10px">
           <input id="manualId" inputmode="numeric" placeholder="หรือพิมพ์รหัสนักเรียน">
           <button class="btn" type="submit">บันทึก</button>
@@ -243,10 +250,56 @@ async function toggleCam() {
     btn.textContent = 'ปิดกล้อง';
     btn.classList.add('stop');
   } catch (e) {
-    showResult('err', 'เปิดกล้องไม่ได้', 'กดอนุญาตให้ใช้กล้องในเบราว์เซอร์ แล้วลองใหม่');
+    showResult('err', 'เปิดกล้องไม่ได้', camErrorText(e), true);
   }
 }
 $('#btnCam').addEventListener('click', toggleCam);
+
+function camErrorText(e) {
+  const s = String((e && (e.name || '')) + ' ' + (e && e.message || e || ''));
+  if (IN_APP) return 'เปิดลิงก์นี้ในแอปแชต/โซเชียลอยู่ ซึ่งไม่ให้ใช้กล้อง ให้เปิดใน Chrome หรือ Safari แทน (ดูกล่องสีเหลืองด้านบน) หรือใช้ปุ่ม "ถ่ายรูปบัตร"';
+  if (!window.isSecureContext) return 'ต้องเปิดผ่านลิงก์ https:// เท่านั้น';
+  if (/NotAllowed|Permission|denied/i.test(s)) return 'เบราว์เซอร์ไม่ได้รับอนุญาตให้ใช้กล้อง: แตะไอคอนแม่กุญแจ/ⓘ ข้างช่อง URL > สิทธิ์ > กล้อง > อนุญาต แล้วรีเฟรชหน้า (iPhone: ตั้งค่า > Safari > กล้อง > อนุญาต)';
+  if (/NotFound|Overconstrained|no camera|Requested device not found/i.test(s)) return 'ไม่พบกล้องหลังในเครื่องนี้ ใช้ปุ่ม "ถ่ายรูปบัตร" แทน';
+  if (/NotReadable|TrackStart|Could not start/i.test(s)) return 'กล้องถูกแอปอื่นใช้อยู่ ปิดแอปกล้อง/วิดีโอคอลอื่นก่อน แล้วลองใหม่';
+  return 'ลองรีเฟรชหน้า หรือใช้ปุ่ม "ถ่ายรูปบัตร" แทน (รายละเอียด: ' + s.trim().slice(0, 120) + ')';
+}
+
+/* ถ่ายรูปบัตร: ใช้กล้องของเครื่องถ่ายภาพ แล้วอ่าน QR/บาร์โค้ดจากภาพ — ใช้ได้แม้ live camera ถูกบล็อก */
+let fileScanner = null;
+$('#photoInput').addEventListener('change', async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  initAudio();
+  const F = Html5QrcodeSupportedFormats;
+  if (!fileScanner) fileScanner = new Html5Qrcode('reader-file', {
+    formatsToSupport: [F.QR_CODE, F.CODE_128, F.CODE_39, F.EAN_13], verbose: false,
+  });
+  showResult('idle', 'กำลังอ่านรูป...', '', true);
+  try {
+    const text = await fileScanner.scanFile(file, false);
+    S.lastSeen[String(text).trim()] = 0;
+    handleCode(text);
+  } catch (err) {
+    showResult('err', 'อ่านโค้ดในรูปไม่ได้', 'ถ่ายให้โค้ดอยู่กลางภาพ ชัด ไม่สะท้อนแสง แล้วลองใหม่');
+    beep('err');
+  }
+});
+
+/* ตรวจว่าเปิดในเบราว์เซอร์ของแอป (LINE, Facebook, Messenger, IG, TikTok) ซึ่งมักบล็อกกล้อง */
+const UA = navigator.userAgent || '';
+const IN_APP = /\bLine\/|FBAN|FBAV|FB_IAB|Instagram|Messenger|MicroMessenger|TikTok|musical_ly/i.test(UA);
+if (IN_APP) {
+  const isLine = /\bLine\//i.test(UA);
+  const ext = location.href.split('#')[0] + (location.search ? '&' : '?') + 'openExternalBrowser=1';
+  $('#inapp').hidden = false;
+  $('#inapp').innerHTML = '⚠️ ตอนนี้เปิดอยู่ในแอป' + (isLine ? ' LINE' : 'แชต/โซเชียล') +
+    ' ซึ่งมักไม่ให้ใช้กล้อง ' +
+    (isLine ? '<a href="' + esc(ext) + '">แตะที่นี่เพื่อเปิดใน Chrome/Safari</a>'
+            : 'กดเมนู ⋯ มุมขวาบน แล้วเลือก "เปิดในเบราว์เซอร์"') +
+    ' หรือใช้ปุ่ม "ถ่ายรูปบัตร" ด้านล่างแทน';
+}
 
 $('#manualForm').addEventListener('submit', e => {
   e.preventDefault();
@@ -330,11 +383,12 @@ async function processQueue() {
 }
 window.addEventListener('online', processQueue);
 
-function showResult(kind, big, sub) {
+function showResult(kind, big, sub, sticky) {
   const el = $('#result');
   el.className = 'result ' + kind;
   el.innerHTML = '<div class="big">' + esc(big) + '</div><div class="sub">' + esc(sub) + '</div>';
   clearTimeout(S.resultTimer);
+  if (sticky) return;
   S.resultTimer = setTimeout(() => {
     el.className = 'result idle';
     el.innerHTML = '<div class="sub">พร้อมสแกนคนถัดไป</div>';
