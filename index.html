@@ -183,6 +183,52 @@
     table.sum .nm{position:static}
   }
 
+  /* ---------- แก้ไขรายการล่าสุด ---------- */
+  .list select.chip.undo{background:var(--sheet);color:var(--muted)}
+
+  /* ---------- เลือกหลายคน (รายวัน) ---------- */
+  .selrow{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:12px;font-size:15px}
+  .selrow label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .linkbtn{background:none;border:0;padding:0;color:var(--ink);font-weight:600;text-decoration:underline;cursor:pointer}
+  input.ck{width:20px;height:20px;accent-color:var(--ink);flex:0 0 20px;margin:0}
+  .roomhead label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+  .bulkbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--paper);border-top:2px solid var(--ink);
+    box-shadow:0 -6px 18px rgba(31,45,138,.12);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+  .bulkbar-in{max-width:560px;margin:0 auto}
+  .bulkbar-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:600}
+  .bulkbar-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .bulkbar-btns button{border:0;border-radius:var(--radius-sm);padding:11px 4px;font-weight:700;cursor:pointer}
+  .bulkbar-btns button:disabled{opacity:.5}
+  .okmsg{color:var(--ok);font-size:15px;margin-top:10px}
+  #tab-report.has-bulk{padding-bottom:120px}
+
+  /* ---------- แดชบอร์ด ---------- */
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .kpi{background:var(--sheet);border-radius:var(--radius);padding:12px 14px}
+  .kpi b{display:block;font-size:28px;font-weight:700;line-height:1.1;color:var(--lead)}
+  .kpi b small{font-size:15px;color:var(--muted);font-weight:600}
+  .kpi span{font-size:13px;color:var(--muted)}
+  .kpi.good b{color:var(--ok)} .kpi.bad b{color:var(--err)}
+  .chart-title{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .chart-title small{color:var(--muted);font-size:13px}
+  .vbars{position:relative;overflow-x:auto;padding-top:6px}
+  .vbars-in{position:relative;display:flex;align-items:flex-end;gap:6px;height:150px;min-width:100%;border-bottom:1px solid var(--ink-soft)}
+  .vbar{flex:1 0 26px;height:100%;display:flex;align-items:flex-end;justify-content:center;cursor:pointer;background:none;border:0;padding:0}
+  .vbar i{display:block;width:70%;max-width:30px;background:var(--ink);border-radius:4px 4px 0 0;min-height:2px;opacity:.85}
+  .vbar.on i,.vbar:hover i{opacity:1;outline:2px solid var(--paper);box-shadow:0 0 0 4px var(--ink-soft)}
+  .vbar.low i{background:#7f8bc9}
+  .refline{position:absolute;left:0;right:0;border-top:1.5px dashed var(--gold);pointer-events:none}
+  .refline span{position:absolute;right:0;top:-18px;font-size:11px;color:var(--lead-2);background:var(--paper);padding:0 4px}
+  .vlabels{display:flex;gap:6px;min-width:100%;margin-top:4px}
+  .vlabels span{flex:1 0 26px;text-align:center;font-size:11px;color:var(--muted);white-space:nowrap}
+  .barinfo{min-height:22px;margin-top:8px;font-size:14px;color:var(--lead-2)}
+  .hbars{display:grid;gap:8px}
+  .hbar{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;font-size:14px}
+  .hbar .track{height:12px;background:var(--sheet);border-radius:6px;overflow:hidden}
+  .hbar .fill{height:100%;background:var(--ink);border-radius:0 4px 4px 0}
+  .hbar .v{color:var(--lead-2);font-size:13px;white-space:nowrap}
+  .watch li .pct{font-size:16px}
+
   .warn{background:var(--warnbg);color:var(--warn);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:15px}
   .warn a{color:inherit;font-weight:600}
 
@@ -271,9 +317,25 @@
           <select id="rRoom" aria-label="ห้อง"><option value="__all">ทุกห้อง</option></select>
         </div>
         <div id="rErr" class="error"></div>
+        <div id="rMsg" class="okmsg" role="status"></div>
         <div id="rSummary" class="summary"></div>
+        <div class="selrow">
+          <label><input type="checkbox" class="ck" id="selAll"> เลือกทั้งหมด</label>
+          <button type="button" class="linkbtn" id="selUnchecked">เลือกเฉพาะคนที่ยังไม่เช็ค</button>
+        </div>
       </div>
       <div id="rBody"></div>
+      <div class="bulkbar" id="bulkBar" hidden>
+        <div class="bulkbar-in">
+          <div class="bulkbar-top"><span id="selCount">เลือก 0 คน</span><button type="button" class="linkbtn" id="selClear">ยกเลิกการเลือก</button></div>
+          <div class="bulkbar-btns">
+            <button type="button" data-bulk="มา" class="s-ok">มา</button>
+            <button type="button" data-bulk="กิจกรรม" class="s-act">กิจกรรม</button>
+            <button type="button" data-bulk="ลา" class="s-leave">ลา</button>
+            <button type="button" data-bulk="ขาด" class="s-abs">ขาด</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="tab-sum" hidden>
@@ -284,7 +346,27 @@
           <button class="btn" id="btnPrintSum" type="button">พิมพ์</button>
         </div>
         <div id="sErr" class="error"></div>
-        <div id="sSummary" class="summary"></div>
+        <div class="kpis" id="sKpis"></div>
+      </div>
+
+      <div class="sheet" id="sDash" hidden>
+        <div class="chart-title"><h2>อัตรามาเรียนรายวัน</h2><small>แตะแท่งเพื่อดูตัวเลข</small></div>
+        <div class="vbars" id="sDays"></div>
+        <div class="barinfo" id="sDayInfo"></div>
+      </div>
+
+      <div class="sheet" id="sRoomsBox" hidden>
+        <div class="chart-title"><h2>ผ่านเกณฑ์รายห้อง</h2><small>คนที่ผ่าน / ทั้งหมด</small></div>
+        <div class="hbars" id="sRooms"></div>
+      </div>
+
+      <div class="sheet" id="sWatchBox" hidden>
+        <div class="chart-title"><h2>ต้องติดตาม</h2><small>ต่ำกว่าเกณฑ์ เรียงจากน้อยไปมาก</small></div>
+        <ul class="list watch" id="sWatch"></ul>
+      </div>
+
+      <div class="sheet">
+        <h2>ตารางรายชื่อ</h2>
         <div class="legend">
           <span><i class="mk ok">✓</i>มา</span><span><i class="mk act">ก</i>กิจกรรม (นับเป็นมา)</span>
           <span><i class="mk leave">ล</i>ลา</span><span><i class="mk abs">✗</i>ขาด</span>
@@ -312,6 +394,7 @@ const S = {
   roster: {}, rosterCount: 0, scanned: {},
   queue: store.get('queue', []), recent: store.get('recent', []),
   sending: false, netError: false, lastSeen: {}, resultTimer: null, report: null,
+  cancel: {}, sel: new Set(),
 };
 
 /* ---------- เข้าสู่ระบบ ---------- */
@@ -375,6 +458,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click
   $('#tab-scan').hidden = tab !== 'scan';
   $('#tab-report').hidden = tab !== 'report';
   $('#tab-sum').hidden = tab !== 'sum';
+  if (tab !== 'report') { S.sel.clear(); $('#bulkBar').hidden = true; $('#tab-report').classList.remove('has-bulk'); }
   if (tab === 'report') loadReport();
   if (tab === 'sum') loadSummary();
 }));
@@ -506,7 +590,10 @@ async function processQueue() {
       const q = S.queue[0];
       const r = await api('scan', { id: q.id, ts: q.ts });
       const rec = S.recent.find(x => x.id === q.id && x.sync === 'pending');
-      if (r.result === 'ok' || r.result === 'duplicate') {
+      if (S.cancel[q.id]) {
+        delete S.cancel[q.id];
+        if (r.result === 'ok') await api('undo', { id: q.id, date: S.today });
+      } else if (r.result === 'ok' || r.result === 'duplicate') {
         S.scanned[q.id] = { status: r.status, time: r.time };
         if (rec) { rec.status = r.status; rec.sync = r.result === 'ok' ? 'ok' : 'dup'; }
       } else {
@@ -554,12 +641,54 @@ function renderStats() {
 
 function renderRecent() {
   $('#recentEmpty').hidden = S.recent.length > 0;
-  $('#recent').innerHTML = S.recent.map(r =>
+  $('#recent').innerHTML = S.recent.map((r, i) =>
     '<li><div class="n">' + esc(r.name) + '<small>' + esc(r.room) + '  ' + esc(r.time.slice(0, 5)) + ' น.</small></div>' +
-    '<span class="chip ' + (STATUS_CLASS[r.status] || 's-none') + '">' + esc(r.status) + '</span>' +
+    (r.sync === 'err'
+      ? '<span class="chip s-abs">ไม่พบรหัส</span>'
+      : '<select data-i="' + i + '" class="chip ' + (STATUS_CLASS[r.status] || 's-none') + '" aria-label="แก้ไขสถานะของ ' + esc(r.name) + '">' +
+        STATUSES.map(k => '<option' + (k === r.status || (r.status === 'สาย' && k === 'มา') ? ' selected' : '') + '>' + k + '</option>').join('') +
+        '<option value="__undo">ยกเลิก (เช็คผิดคน)</option></select>') +
     '<span class="sync' + (r.sync === 'err' ? ' err' : '') + '" title="' + (SYNC_TITLE[r.sync] || '') + '">' + (SYNC_ICON[r.sync] || '') + '</span></li>'
   ).join('');
 }
+
+/* แก้ไข/ยกเลิกรายการในเช็คชื่อล่าสุด */
+$('#recent').addEventListener('change', async e => {
+  const sel = e.target.closest('select[data-i]');
+  if (!sel) return;
+  const rec = S.recent[Number(sel.dataset.i)];
+  if (!rec) return;
+  const v = sel.value;
+  if (v === '__undo') {
+    if (!confirm('ยกเลิกการเช็คชื่อของ ' + rec.name + ' ?')) { renderRecent(); return; }
+    sel.disabled = true;
+    const qi = S.queue.findIndex(q => q.id === rec.id);
+    try {
+      if (qi > 0 || (qi === 0 && !S.sending)) {
+        S.queue.splice(qi, 1);            // ยังไม่ได้ส่ง: ลบออกจากคิวได้เลย
+        store.set('queue', S.queue);
+      } else {
+        if (qi === 0) S.cancel[rec.id] = true; // กำลังส่งอยู่: ยกเลิกหลังส่งเสร็จ
+        else await api('undo', { id: rec.id, date: S.today });
+      }
+      delete S.scanned[rec.id];
+      S.recent.splice(S.recent.indexOf(rec), 1);
+      S.lastSeen[rec.id] = 0;
+      saveRecent();
+      showResult('idle', 'ยกเลิกแล้ว', rec.name);
+    } catch (err) { alert(err.message); }
+  } else {
+    sel.disabled = true;
+    try {
+      await api('mark', { id: rec.id, status: v, date: S.today });
+      rec.status = v;
+      S.scanned[rec.id] = Object.assign({}, S.scanned[rec.id], { status: v });
+      saveRecent();
+    } catch (err) { alert(err.message); }
+  }
+  renderRecent();
+  renderStats();
+});
 function saveRecent() { store.set('recent', S.recent); }
 
 /* เสียงและการสั่น */
@@ -594,6 +723,8 @@ async function loadReport() {
   $('#rBody').innerHTML = '<div class="sheet muted" style="margin-top:14px">กำลังโหลด...</div>';
   try {
     S.report = await api('report', { date: $('#rDate').value || S.today });
+    S.sel.clear();
+    $('#rMsg').textContent = '';
     const sel = $('#rRoom');
     const want = store.get('room', '__all');
     sel.innerHTML = '<option value="__all">ทุกห้อง</option>' +
@@ -627,10 +758,11 @@ function renderReport() {
   $('#rBody').innerHTML = rooms.map(r => {
     const c = counts(r.students);
     const pct = r.students.length ? Math.round((c['มา'] + c['กิจกรรม']) * 100 / r.students.length) : 0;
-    return '<div class="sheet" style="margin-top:14px"><div class="roomhead"><h2>' + esc(r.room) + '</h2><span class="pct">' + pct + '%</span></div>' +
+    const allSel = r.students.length && r.students.every(s => S.sel.has(s.id));
+    return '<div class="sheet" style="margin-top:14px"><div class="roomhead"><label><input type="checkbox" class="ck" data-room="' + esc(r.room) + '"' + (allSel ? ' checked' : '') + ' aria-label="เลือกทั้งห้อง ' + esc(r.room) + '"><h2 style="margin:0">' + esc(r.room) + '</h2></label><span class="pct">' + pct + '%</span></div>' +
       '<div class="summary" style="margin:0 0 6px">' + chips(c, r.students.length) + '</div><ul class="list">' +
       r.students.map(s =>
-        '<li><span class="no">' + esc(s.no) + '</span><div class="n">' + esc(s.name) +
+        '<li><input type="checkbox" class="ck" data-sid="' + esc(s.id) + '"' + (S.sel.has(s.id) ? ' checked' : '') + ' aria-label="เลือก ' + esc(s.name) + '"><span class="no">' + esc(s.no) + '</span><div class="n">' + esc(s.name) +
         '<small>' + esc(s.id) + (s.time ? '  ' + esc(s.time.slice(0, 5)) + ' น.' : '') + '</small></div>' +
         '<select data-id="' + esc(s.id) + '" class="chip ' + (STATUS_CLASS[s.status] || 's-none') + '" aria-label="สถานะของ ' + esc(s.name) + '">' +
         (s.status ? '' : '<option value="" selected disabled>ยังไม่เช็ค</option>') +
@@ -638,7 +770,62 @@ function renderReport() {
         '</select></li>'
       ).join('') + '</ul></div>';
   }).join('') || '<div class="sheet muted" style="margin-top:14px">ยังไม่มีรายชื่อนักเรียน</div>';
+  updateBulk();
 }
+
+function visibleStudents() {
+  if (!S.report) return [];
+  const room = $('#rRoom').value;
+  return S.report.rooms.filter(r => room === '__all' || r.room === room).flatMap(r => r.students);
+}
+function updateBulk() {
+  const n = S.sel.size;
+  $('#bulkBar').hidden = n === 0;
+  $('#tab-report').classList.toggle('has-bulk', n > 0);
+  $('#selCount').textContent = 'เลือก ' + n + ' คน  ลงเป็น:';
+  const vis = visibleStudents();
+  $('#selAll').checked = vis.length > 0 && vis.every(s => S.sel.has(s.id));
+}
+$('#selAll').addEventListener('change', e => {
+  visibleStudents().forEach(s => e.target.checked ? S.sel.add(s.id) : S.sel.delete(s.id));
+  renderReport();
+});
+$('#selUnchecked').addEventListener('click', () => {
+  S.sel.clear();
+  visibleStudents().filter(s => !s.status).forEach(s => S.sel.add(s.id));
+  renderReport();
+});
+$('#selClear').addEventListener('click', () => { S.sel.clear(); renderReport(); });
+$('#rBody').addEventListener('click', e => {
+  const ck = e.target.closest('input.ck');
+  if (!ck) return;
+  if (ck.dataset.sid) { ck.checked ? S.sel.add(ck.dataset.sid) : S.sel.delete(ck.dataset.sid); updateBulk(); }
+  if (ck.dataset.room) {
+    const room = S.report.rooms.find(r => r.room === ck.dataset.room);
+    if (room) room.students.forEach(s => ck.checked ? S.sel.add(s.id) : S.sel.delete(s.id));
+    renderReport();
+  }
+});
+document.querySelectorAll('[data-bulk]').forEach(b => b.addEventListener('click', async () => {
+  const status = b.dataset.bulk, ids = [...S.sel], date = S.report.date;
+  if (!ids.length) return;
+  const btns = document.querySelectorAll('[data-bulk]');
+  btns.forEach(x => { x.disabled = true; });
+  $('#rErr').textContent = ''; $('#rMsg').textContent = '';
+  try {
+    await api('markMany', { ids, status, date });
+    const set = new Set(ids);
+    S.report.rooms.forEach(r => r.students.forEach(s => { if (set.has(s.id)) s.status = status; }));
+    if (date === S.today) { ids.forEach(id => { S.scanned[id] = Object.assign({}, S.scanned[id], { status }); }); renderStats(); }
+    S.sel.clear();
+    $('#rMsg').textContent = 'ลงเป็น "' + status + '" แล้ว ' + ids.length + ' คน';
+    renderReport();
+  } catch (err) {
+    $('#rErr').textContent = err.message;
+  } finally {
+    btns.forEach(x => { x.disabled = false; });
+  }
+}));
 
 $('#rBody').addEventListener('change', async e => {
   const sel = e.target.closest('select[data-id]');
@@ -667,7 +854,7 @@ $('#btnPrintSum').addEventListener('click', () => window.print());
 
 async function loadSummary() {
   $('#sErr').textContent = '';
-  $('#sSummary').innerHTML = '';
+  $('#sKpis').innerHTML = '';
   $('#sBody').innerHTML = '<div class="muted" style="padding:14px 18px">กำลังโหลด...</div>';
   try {
     S.sum = await api('summary');
@@ -689,11 +876,7 @@ function renderSummary() {
   const list = r.students.filter(s => room === '__all' || s.room === room);
   const passN = list.filter(s => s.pass).length;
   $('#sPrintRoom').textContent = room === '__all' ? '' : '(' + room + ')';
-  $('#sSummary').innerHTML =
-    '<span class="chip s-none">เช็คชื่อแล้ว ' + r.dates.length + ' วัน</span>' +
-    '<span class="chip s-ok">ผ่าน ' + passN + ' คน</span>' +
-    '<span class="chip s-abs">ไม่ผ่าน ' + (list.length - passN) + ' คน</span>' +
-    '<span class="chip s-none">เกณฑ์ผ่าน ' + r.pass + '%</span>';
+  renderDashboard(r, list, room, passN);
   if (!r.dates.length) {
     $('#sBody').innerHTML = '<div class="muted" style="padding:14px 18px">ยังไม่มีวันที่เช็คชื่อ</div>';
     return;
@@ -709,6 +892,65 @@ function renderSummary() {
       '<td class="cnt">' + (s.leaves ? s.leaves + (s.leaveAbs ? '<small class="la">=ขาด ' + s.leaveAbs + '</small>' : '') : '–') + '</td>' +
       s.att.map(a => { const m = MK[a]; return '<td>' + (m ? '<i class="mk ' + m[0] + '" title="' + a + '">' + m[1] + '</i>' : '<i class="mk none">·</i>') + '</td>'; }).join('') + '</tr>'
     ).join('') + '</tbody></table>';
+}
+
+function renderDashboard(r, list, room, passN) {
+  const n = list.length, days = r.dates.length;
+  const avg = n ? list.reduce((a, s) => a + s.pct, 0) / n : 0;
+  const fmt = v => (Math.round(v * 10) / 10).toFixed(v % 1 && v < 100 ? 1 : 0);
+  $('#sKpis').innerHTML =
+    '<div class="kpi"><b>' + n + '</b><span>นักเรียน' + (room === '__all' ? 'ทั้งหมด' : ' ' + esc(room)) + '</span></div>' +
+    '<div class="kpi"><b>' + days + '</b><span>วันที่เช็คชื่อแล้ว</span></div>' +
+    '<div class="kpi"><b>' + fmt(avg) + '<small>%</small></b><span>อัตราเข้าเรียนเฉลี่ย</span></div>' +
+    '<div class="kpi ' + (n && passN === n ? 'good' : (n - passN ? 'bad' : '')) + '"><b>' + passN + '<small>/' + n + '</small></b><span>ผ่านเกณฑ์ ' + r.pass + '%</span></div>';
+
+  const has = days > 0 && n > 0;
+  $('#sDash').hidden = !has;
+  $('#sRoomsBox').hidden = !has || room !== '__all';
+  $('#sWatchBox').hidden = !has;
+  if (!has) return;
+
+  // อัตรามาเรียนรายวัน (มา + กิจกรรม) ของกลุ่มที่เลือก
+  const per = r.dates.map((d, i) => {
+    const c = { came: 0, leave: 0, abs: 0 };
+    list.forEach(s => { const a = s.att[i]; if (isPresent(a)) c.came++; else if (a === 'ลา') c.leave++; else c.abs++; });
+    return Object.assign(c, { d, pct: c.came * 100 / n });
+  });
+  const ref = r.pass;
+  $('#sDays').innerHTML =
+    '<div class="vbars-in" style="min-width:' + (per.length * 32) + 'px">' +
+      '<div class="refline" style="bottom:' + ref + '%"><span>' + ref + '%</span></div>' +
+      per.map((p, i) => '<button type="button" class="vbar' + (p.pct < ref ? ' low' : '') + '" data-i="' + i + '" aria-label="' +
+        thaiShort(p.d) + ' มา ' + p.came + ' จาก ' + n + ' คน"><i style="height:' + Math.max(1, p.pct) + '%"></i></button>').join('') +
+    '</div>' +
+    '<div class="vlabels" style="min-width:' + (per.length * 32) + 'px">' + per.map(p => '<span>' + thaiShort(p.d) + '</span>').join('') + '</div>';
+  const info = i => {
+    const p = per[i];
+    document.querySelectorAll('#sDays .vbar').forEach((b, j) => b.classList.toggle('on', j === i));
+    $('#sDayInfo').textContent = thaiShort(p.d) + '  มา ' + p.came + '/' + n + ' คน (' + Math.round(p.pct) + '%)  ลา ' + p.leave + '  ขาด ' + p.abs;
+  };
+  $('#sDays').onclick = e => { const b = e.target.closest('.vbar'); if (b) info(Number(b.dataset.i)); };
+  $('#sDays').onmouseover = $('#sDays').onclick;
+  info(per.length - 1);
+  $('#sDays').scrollLeft = 1e6;
+
+  // ผ่านเกณฑ์รายห้อง
+  if (room === '__all') {
+    const rooms = {};
+    list.forEach(s => { const x = rooms[s.room] || (rooms[s.room] = { n: 0, p: 0 }); x.n++; if (s.pass) x.p++; });
+    $('#sRooms').innerHTML = Object.keys(rooms).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(k => {
+      const x = rooms[k], pc = x.p * 100 / x.n;
+      return '<div class="hbar"><span>' + esc(k) + '</span><div class="track"><div class="fill" style="width:' + Math.max(pc ? 2 : 0, pc) + '%"></div></div>' +
+        '<span class="v">' + x.p + '/' + x.n + ' (' + Math.round(pc) + '%)</span></div>';
+    }).join('');
+  }
+
+  // ต้องติดตาม
+  const watch = list.filter(s => !s.pass).sort((a, b) => a.pct - b.pct);
+  $('#sWatch').innerHTML = watch.length
+    ? watch.map(s => '<li><div class="n">' + esc(s.name) + '<small>' + esc(s.room) + (s.no ? ' เลขที่ ' + esc(s.no) : '') +
+        '  มา ' + s.came + '/' + days + (s.leaves ? '  ลา ' + s.leaves : '') + '</small></div><span class="pct pctc" style="color:var(--err);font-weight:700">' + fmt(s.pct) + '%</span></li>').join('')
+    : '<li class="muted">ทุกคนผ่านเกณฑ์</li>';
 }
 
 /* ---------- เปิดในแอปแชต: แนะนำให้เปิดในเบราว์เซอร์ ---------- */
