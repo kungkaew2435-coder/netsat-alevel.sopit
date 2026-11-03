@@ -26,6 +26,7 @@
     --warn:#9a5a00; --warnbg:#fdf1dc;
     --err:#b3261e; --errbg:#fbe5e3;
     --leave:#5b3fb5; --leavebg:#ece7fb;
+    --act:#0b6e83; --actbg:#dcf1f5;
     --radius-lg:22px; --radius:14px; --radius-sm:10px;
     --display:'Sarabun', system-ui, sans-serif;
     --body:'Sarabun', system-ui, sans-serif;
@@ -130,6 +131,7 @@
   .chip{font-size:13px;font-weight:600;padding:3px 11px;border-radius:999px;white-space:nowrap;border:0}
   .s-ok{background:var(--okbg);color:var(--ok)}
   .s-late{background:var(--warnbg);color:var(--warn)}
+  .s-act{background:var(--actbg);color:var(--act)}
   .s-leave{background:var(--leavebg);color:var(--leave)}
   .s-abs{background:var(--errbg);color:var(--err)}
   .s-none{background:var(--sheet);color:var(--muted)}
@@ -159,6 +161,7 @@
   .mk{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:700}
   .mk.ok{background:var(--okbg);color:var(--ok)} .mk.late{background:var(--warnbg);color:var(--warn)}
   .mk.leave{background:var(--leavebg);color:var(--leave)} .mk.abs{background:var(--errbg);color:var(--err)}
+  .mk.act{background:var(--actbg);color:var(--act)}
   .mk.none{color:var(--ink-soft)}
   table.sum .pctc{font-weight:700;font-size:15px}
   table.sum .cnt{color:var(--muted);border-right:1px solid var(--ink-line)}
@@ -283,7 +286,7 @@
         <div id="sErr" class="error"></div>
         <div id="sSummary" class="summary"></div>
         <div class="legend">
-          <span><i class="mk ok">✓</i>มา</span><span><i class="mk late">ส</i>สาย</span>
+          <span><i class="mk ok">✓</i>มา</span><span><i class="mk act">ก</i>กิจกรรม (นับเป็นมา)</span>
           <span><i class="mk leave">ล</i>ลา</span><span><i class="mk abs">✗</i>ขาด</span>
         </div>
         <p class="muted" style="margin:8px 0 0">ร้อยละ = (วันที่มา + วันลาที่ไม่ถูกหัก) ÷ วันที่เช็คชื่อ โดยลา 2 ครั้งนับเป็นขาด 1 ครั้ง</p>
@@ -298,7 +301,9 @@
 <script src="common.js"></script>
 <script>
 const $ = s => document.querySelector(s);
-const STATUS_CLASS = { 'มา': 's-ok', 'สาย': 's-late', 'ลา': 's-leave', 'ขาด': 's-abs' };
+const STATUS_CLASS = { 'มา': 's-ok', 'สาย': 's-ok', 'กิจกรรม': 's-act', 'ลา': 's-leave', 'ขาด': 's-abs' };
+const STATUSES = ['มา', 'กิจกรรม', 'ลา', 'ขาด'];
+const isPresent = st => st === 'มา' || st === 'กิจกรรม' || st === 'สาย';
 const SYNC_ICON = { pending: '…', ok: '✓', dup: '!', err: '✕' };
 const SYNC_TITLE = { pending: 'กำลังส่ง', ok: 'บันทึกแล้ว', dup: 'มีคนบันทึกไว้แล้ว', err: 'ไม่พบในรายชื่อ' };
 
@@ -474,11 +479,11 @@ function handleCode(raw) {
   }
 
   const time = localTime(d);
-  const status = time.slice(0, 5) > S.late ? 'สาย' : 'มา';
+  const status = 'มา';
   S.scanned[id] = { status, time, pending: true };
   setBubble('filled', 'เช็คชื่อแล้ว', 'แตะเพื่อถ่ายคนถัดไป');
   setTimeout(resetBubble, 1800);
-  showResult(status === 'สาย' ? 'late' : 'ok', st.name,
+  showResult('ok', st.name,
     st.room + (st.no ? ' เลขที่ ' + st.no : '') + '  ' + status + ' ' + time.slice(0, 5) + ' น.');
   beep('ok');
 
@@ -539,7 +544,7 @@ function showResult(kind, big, sub, sticky) {
 }
 
 function renderStats() {
-  const came = Object.values(S.scanned).filter(v => v.status === 'มา' || v.status === 'สาย').length;
+  const came = Object.values(S.scanned).filter(v => isPresent(v.status)).length;
   $('#stScanned').innerHTML = came + '<small>/' + S.rosterCount + '</small>';
   $('#stLeft').textContent = Math.max(0, S.rosterCount - Object.keys(S.scanned).length);
   $('#stPending').textContent = S.queue.length;
@@ -602,12 +607,12 @@ async function loadReport() {
 }
 
 function counts(students) {
-  const c = { 'มา': 0, 'สาย': 0, 'ลา': 0, 'ขาด': 0, '': 0 };
-  students.forEach(s => { c[s.status in c ? s.status : '']++; });
+  const c = { 'มา': 0, 'กิจกรรม': 0, 'ลา': 0, 'ขาด': 0, '': 0 };
+  students.forEach(s => { const k = s.status === 'สาย' ? 'มา' : s.status; c[k in c ? k : '']++; });
   return c;
 }
 function chips(c, total) {
-  return ['มา', 'สาย', 'ลา', 'ขาด'].filter(k => k !== 'สาย' || c[k]).map(k => '<span class="chip ' + STATUS_CLASS[k] + '">' + k + ' ' + c[k] + '</span>').join('') +
+  return STATUSES.filter(k => k !== 'กิจกรรม' || c[k]).map(k => '<span class="chip ' + STATUS_CLASS[k] + '">' + k + ' ' + c[k] + '</span>').join('') +
     (c[''] ? '<span class="chip s-none">ยังไม่เช็ค ' + c[''] + '</span>' : '') +
     '<span class="chip s-none">ทั้งหมด ' + total + '</span>';
 }
@@ -621,7 +626,7 @@ function renderReport() {
 
   $('#rBody').innerHTML = rooms.map(r => {
     const c = counts(r.students);
-    const pct = r.students.length ? Math.round((c['มา'] + c['สาย']) * 100 / r.students.length) : 0;
+    const pct = r.students.length ? Math.round((c['มา'] + c['กิจกรรม']) * 100 / r.students.length) : 0;
     return '<div class="sheet" style="margin-top:14px"><div class="roomhead"><h2>' + esc(r.room) + '</h2><span class="pct">' + pct + '%</span></div>' +
       '<div class="summary" style="margin:0 0 6px">' + chips(c, r.students.length) + '</div><ul class="list">' +
       r.students.map(s =>
@@ -629,7 +634,7 @@ function renderReport() {
         '<small>' + esc(s.id) + (s.time ? '  ' + esc(s.time.slice(0, 5)) + ' น.' : '') + '</small></div>' +
         '<select data-id="' + esc(s.id) + '" class="chip ' + (STATUS_CLASS[s.status] || 's-none') + '" aria-label="สถานะของ ' + esc(s.name) + '">' +
         (s.status ? '' : '<option value="" selected disabled>ยังไม่เช็ค</option>') +
-        ['มา', 'สาย', 'ลา', 'ขาด'].map(k => '<option' + (k === s.status ? ' selected' : '') + '>' + k + '</option>').join('') +
+        STATUSES.map(k => '<option' + (k === s.status ? ' selected' : '') + '>' + k + '</option>').join('') +
         '</select></li>'
       ).join('') + '</ul></div>';
   }).join('') || '<div class="sheet muted" style="margin-top:14px">ยังไม่มีรายชื่อนักเรียน</div>';
@@ -655,7 +660,7 @@ $('#rBody').addEventListener('change', async e => {
 
 const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 const thaiShort = d => { const p = d.split('-'); return Number(p[2]) + ' ' + TH_M[Number(p[1]) - 1]; };
-const MK = { 'มา': ['ok', '✓'], 'สาย': ['late', 'ส'], 'ลา': ['leave', 'ล'], 'ขาด': ['abs', '✗'] };
+const MK = { 'มา': ['ok', '✓'], 'สาย': ['ok', '✓'], 'กิจกรรม': ['act', 'ก'], 'ลา': ['leave', 'ล'], 'ขาด': ['abs', '✗'] };
 
 $('#sRoom').addEventListener('change', () => { store.set('sroom', $('#sRoom').value); renderSummary(); });
 $('#btnPrintSum').addEventListener('click', () => window.print());
