@@ -162,6 +162,7 @@
   .mk.none{color:var(--ink-soft)}
   table.sum .pctc{font-weight:700;font-size:15px}
   table.sum .cnt{color:var(--muted);border-right:1px solid var(--ink-line)}
+  table.sum .la{display:block;font-size:11px;color:var(--err)}
   table.sum .nm{min-width:132px}
   table.sum tr.fail .pctc{color:var(--err)}
   .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--muted);margin-top:10px}
@@ -285,6 +286,7 @@
           <span><i class="mk ok">✓</i>มา</span><span><i class="mk late">ส</i>สาย</span>
           <span><i class="mk leave">ล</i>ลา</span><span><i class="mk abs">✗</i>ขาด</span>
         </div>
+        <p class="muted" style="margin:8px 0 0">ร้อยละ = (วันที่มา + วันลาที่ไม่ถูกหัก) ÷ วันที่เช็คชื่อ โดยลา 2 ครั้งนับเป็นขาด 1 ครั้ง</p>
         <div class="tablewrap" id="sBody"></div>
       </div>
     </div>
@@ -691,14 +693,15 @@ function renderSummary() {
     $('#sBody').innerHTML = '<div class="muted" style="padding:14px 18px">ยังไม่มีวันที่เช็คชื่อ</div>';
     return;
   }
-  $('#sBody').innerHTML = '<table class="sum"><thead><tr><th class="nm">ชื่อ-สกุล</th><th>ร้อยละ</th><th>ผล</th><th>มา</th>' +
+  $('#sBody').innerHTML = '<table class="sum"><thead><tr><th class="nm">ชื่อ-สกุล</th><th>ร้อยละ</th><th>ผล</th><th>มา</th><th>ลา</th>' +
     r.dates.map(d => '<th>' + thaiShort(d) + '</th>').join('') +
     '</tr></thead><tbody>' +
     list.map(s => '<tr class="' + (s.pass ? '' : 'fail') + '"><td class="nm">' + esc(s.name) +
       '<small>' + esc(s.room) + (s.no ? ' เลขที่ ' + esc(s.no) : '') + '</small></td>' +
       '<td class="pctc">' + s.pct.toFixed(s.pct % 1 ? 1 : 0) + '%</td>' +
       '<td><span class="chip ' + (s.pass ? 's-ok' : 's-abs') + '">' + (s.pass ? 'ผ่าน' : 'ไม่ผ่าน') + '</span></td>' +
-      '<td class="cnt">' + s.came + '/' + r.dates.length + '</td>' +
+      '<td>' + s.came + '/' + r.dates.length + '</td>' +
+      '<td class="cnt">' + (s.leaves ? s.leaves + (s.leaveAbs ? '<small class="la">=ขาด ' + s.leaveAbs + '</small>' : '') : '–') + '</td>' +
       s.att.map(a => { const m = MK[a]; return '<td>' + (m ? '<i class="mk ' + m[0] + '" title="' + a + '">' + m[1] + '</i>' : '<i class="mk none">·</i>') + '</td>'; }).join('') + '</tr>'
     ).join('') + '</tbody></table>';
 }
