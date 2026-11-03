@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>พิมพ์บัตรนักเรียน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;font-family:Sarabun,system-ui,sans-serif;background:#f4f6f8;color:#1d2433}
+  .controls{max-width:760px;margin:0 auto;padding:16px}
+  .panel{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:12px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:140px}
+  input,select,button{font:inherit;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px}
+  button{background:#1d4ed8;color:#fff;border:0;font-weight:700;flex:0 0 auto}
+  .error{color:#b91c1c;margin-top:8px}
+  .muted{color:#6b7280;font-size:14px}
+
+  .grid{display:grid;grid-template-columns:repeat(2,85.6mm);gap:4mm 6mm;justify-content:center;padding:10mm 0}
+  .card{width:85.6mm;height:54mm;background:#fff;border:.3mm dashed #9ca3af;border-radius:3mm;padding:3mm 4mm;
+    display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;page-break-inside:avoid}
+  .card .top{font-size:9pt;font-weight:700;color:#1d4ed8;border-bottom:.3mm solid #1d4ed8;padding-bottom:1mm;margin-bottom:2mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .body{display:flex;gap:3mm;flex:1;min-height:0}
+  .card .info{flex:1;min-width:0;font-size:9pt;line-height:1.45}
+  .card .name{font-size:11.5pt;font-weight:700;line-height:1.25;margin-bottom:1mm}
+  .card .qr{width:24mm;height:24mm;flex:0 0 24mm}
+  .card .qr img,.card .qr canvas{width:100%!important;height:100%!important}
+  .card .bc{width:100%;height:11mm;margin-top:1mm}
+  .card.no-qr .info{font-size:10pt}
+  .card.no-qr .name{font-size:13pt}
+
+  @page{size:A4;margin:8mm}
+  @media print{
+    body{background:#fff}
+    .controls{display:none}
+    .grid{padding:0}
+  }
+</style>
+</head>
+<body>
+<div class="controls">
+  <div class="panel">
+    <h3 style="margin-top:0">พิมพ์บัตรนักเรียน (QR / บาร์โค้ด)</h3>
+    <form id="loginForm" class="row">
+      <input id="pin" type="password" inputmode="numeric" placeholder="PIN ครู">
+      <button type="submit">โหลดรายชื่อ</button>
+    </form>
+    <div id="err" class="error"></div>
+  </div>
+
+  <div class="panel" id="opts" hidden>
+    <div class="row">
+      <select id="room"></select>
+      <select id="kind">
+        <option value="both">QR + บาร์โค้ด</option>
+        <option value="qr">QR อย่างเดียว</option>
+        <option value="bc">บาร์โค้ดอย่างเดียว</option>
+      </select>
+      <button id="btnPrint" type="button">พิมพ์</button>
+    </div>
+    <p class="muted">ขนาดเท่าบัตรประชาชน (85.6 × 54 มม.) หน้า A4 ได้ 10 ใบ ตอนพิมพ์ให้ตั้งสเกล 100% และปิด "หัวกระดาษ/ท้ายกระดาษ"</p>
+    <p class="muted" id="count"></p>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+let roster = [], school = '';
+
+$('#loginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('#err').textContent = '';
+  const pin = $('#pin').value.trim() || store.get('pin', '');
+  if (!pin) return;
+  try {
+    const r = await api('login', { pin });
+    store.set('pin', pin);
+    roster = r.roster;
+    school = r.settings.school_name;
+    const rooms = [...new Set(roster.map(s => s.room))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    $('#room').innerHTML = rooms.map(x => '<option>' + esc(x) + '</option>').join('') + '<option value="__all">ทุกห้อง</option>';
+    $('#opts').hidden = false;
+    render();
+  } catch (err) {
+    $('#err').textContent = err.message;
+  }
+});
+
+$('#room').addEventListener('change', render);
+$('#kind').addEventListener('change', render);
+$('#btnPrint').addEventListener('click', () => window.print());
+
+function render() {
+  const room = $('#room').value, kind = $('#kind').value;
+  const list = roster
+    .filter(s => room === '__all' || s.room === room)
+    .sort((a, b) => a.room.localeCompare(b.room, undefined, { numeric: true }) || (Number(a.no) || 0) - (Number(b.no) || 0));
+  $('#count').textContent = 'จำนวน ' + list.length + ' ใบ (' + Math.ceil(list.length / 10) + ' หน้า)';
+
+  const grid = $('#grid');
+  grid.innerHTML = list.map((s, i) =>
+    '<div class="card' + (kind === 'bc' ? ' no-qr' : '') + '">' +
+      '<div class="top">' + esc(school) + '</div>' +
+      '<div class="body">' +
+        '<div class="info"><div class="name">' + esc(s.name) + '</div>' +
+          '<div>ชั้น ' + esc(s.room) + (s.no ? ' เลขที่ ' + esc(s.no) : '') + '</div>' +
+          '<div>รหัส ' + esc(s.id) + '</div></div>' +
+        (kind !== 'bc' ? '<div class="qr" id="qr' + i + '"></div>' : '') +
+      '</div>' +
+      (kind !== 'qr' ? '<svg class="bc" id="bc' + i + '"></svg>' : '') +
+    '</div>'
+  ).join('');
+
+  list.forEach((s, i) => {
+    if (kind !== 'bc') {
+      new QRCode(document.getElementById('qr' + i), { text: s.id, width: 256, height: 256, correctLevel: QRCode.CorrectLevel.M });
+    }
+    if (kind !== 'qr') {
+      try {
+        JsBarcode('#bc' + i, s.id, { format: 'CODE128', height: 40, width: 2, margin: 0, fontSize: 14, displayValue: kind === 'bc' });
+      } catch (e) {}
+    }
+  });
+}
+
+if (store.get('pin', '')) $('#pin').placeholder = 'PIN ครู (กดโหลดได้เลยถ้าเคยเข้าระบบแล้ว)';
+</script>
+</body>
+</html>

@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เช็คชื่อนักเรียน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#f4f6f8;--card:#fff;--ink:#1d2433;--muted:#6b7280;--line:#e5e7eb;--brand:#1d4ed8;
+    --ok:#15803d;--okbg:#dcfce7;--late:#b45309;--latebg:#fef3c7;--err:#b91c1c;--errbg:#fee2e2;
+    --leave:#6d28d9;--leavebg:#ede9fe;--dup:#3730a3;--dupbg:#e0e7ff}
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  body{margin:0;font-family:Sarabun,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:16px}
+  header{background:var(--brand);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px}
+  header h1{font-size:18px;margin:0;flex:1}
+  header .who{font-size:14px;opacity:.9}
+  header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:8px;padding:6px 10px;font:inherit;font-size:14px}
+  main{max-width:640px;margin:0 auto;padding:16px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tabs button{flex:1;padding:10px;border:1px solid var(--line);background:var(--card);border-radius:10px;font:inherit;font-weight:600;color:var(--muted)}
+  .tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  input,select{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;width:100%;color:var(--ink)}
+  .btn{display:block;width:100%;padding:12px;border:0;border-radius:10px;background:var(--brand);color:#fff;font:inherit;font-weight:700;font-size:17px}
+  .btn.stop{background:#475569}
+  .row{display:flex;gap:8px}
+  .row>*{flex:1;min-width:0}
+  .row .btn{flex:0 0 auto;width:auto;padding:10px 16px;font-size:16px}
+  .muted{color:var(--muted);font-size:14px}
+  .error{color:var(--err);margin-top:10px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+  .stats div{background:var(--bg);border-radius:10px;padding:8px 4px}
+  .stats b{display:block;font-size:22px}
+  .stats span{font-size:13px;color:var(--muted)}
+  #reader{width:100%;border-radius:12px;overflow:hidden;background:#000;margin:12px 0}
+  #reader:empty{display:none}
+  .result{border-radius:12px;padding:14px 16px;margin:12px 0;border:2px solid transparent;transition:background .2s}
+  .result .big{font-size:22px;font-weight:700;line-height:1.3}
+  .result .sub{font-size:15px}
+  .result.idle{background:var(--bg);color:var(--muted);text-align:center}
+  .result.ok{background:var(--okbg);border-color:var(--ok);color:var(--ok)}
+  .result.late{background:var(--latebg);border-color:var(--late);color:var(--late)}
+  .result.dup{background:var(--dupbg);border-color:var(--dup);color:var(--dup)}
+  .result.err{background:var(--errbg);border-color:var(--err);color:var(--err)}
+  h3{font-size:16px;margin:0 0 8px}
+  .list{list-style:none;margin:0;padding:0}
+  .list li{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .list li:last-child{border-bottom:0}
+  .list .n{flex:1;min-width:0}
+  .list .n small{display:block;color:var(--muted)}
+  .no{width:28px;text-align:right;color:var(--muted);font-size:14px}
+  .chip{font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;white-space:nowrap}
+  .s-ok{background:var(--okbg);color:var(--ok)}
+  .s-late{background:var(--latebg);color:var(--late)}
+  .s-leave{background:var(--leavebg);color:var(--leave)}
+  .s-abs{background:var(--errbg);color:var(--err)}
+  .s-none{background:var(--bg);color:var(--muted)}
+  .sync{width:18px;text-align:center;font-size:14px}
+  .summary{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+  .list select{width:auto;padding:4px 8px;font-size:14px;border-radius:8px}
+  .roomhead{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>เช็คชื่อนักเรียน</h1>
+  <span class="who" id="who"></span>
+  <button id="btnLogout" hidden>ออก</button>
+</header>
+
+<main>
+  <!-- เข้าสู่ระบบ -->
+  <section id="login" class="panel" hidden>
+    <h3>เข้าสู่ระบบด้วย PIN ครู</h3>
+    <form id="loginForm" class="row">
+      <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">
+      <button class="btn" type="submit">เข้าระบบ</button>
+    </form>
+    <div id="loginErr" class="error"></div>
+  </section>
+
+  <section id="loading" class="panel muted">กำลังโหลด...</section>
+
+  <!-- แอปหลัก -->
+  <section id="app" hidden>
+    <div class="tabs">
+      <button data-tab="scan" class="on">สแกน</button>
+      <button data-tab="report">รายงาน</button>
+    </div>
+
+    <div id="tab-scan">
+      <div class="panel">
+        <div class="stats">
+          <div><b id="stScanned">0</b><span>สแกนแล้ว / <span id="stTotal">0</span></span></div>
+          <div><b id="stLate">0</b><span>มาสาย</span></div>
+          <div><b id="stPending">0</b><span id="stPendingLbl">รอส่ง</span></div>
+        </div>
+        <div id="reader"></div>
+        <div id="result" class="result idle"><div class="sub">กด "เปิดกล้อง" แล้วส่องบัตรนักเรียน</div></div>
+        <button id="btnCam" class="btn">เปิดกล้อง</button>
+        <form id="manualForm" class="row" style="margin-top:10px">
+          <input id="manualId" inputmode="numeric" placeholder="หรือพิมพ์รหัสนักเรียน">
+          <button class="btn" type="submit">บันทึก</button>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>สแกนล่าสุด</h3>
+        <ul id="recent" class="list"></ul>
+        <div class="muted" id="recentEmpty">ยังไม่มีรายการ</div>
+      </div>
+    </div>
+
+    <div id="tab-report" hidden>
+      <div class="panel">
+        <div class="row">
+          <input id="rDate" type="date">
+          <select id="rRoom"><option value="__all">ทุกห้อง</option></select>
+        </div>
+        <button id="btnReport" class="btn" style="margin-top:10px">โหลดรายงาน</button>
+        <div id="rErr" class="error"></div>
+        <div id="rSummary" class="summary"></div>
+      </div>
+      <div id="rBody"></div>
+    </div>
+  </section>
+</main>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const STATUS_CLASS = { 'มา': 's-ok', 'สาย': 's-late', 'ลา': 's-leave', 'ขาด': 's-abs' };
+const SYNC_ICON = { pending: '⏳', ok: '✓', dup: '⚠', err: '✕' };
+
+const S = {
+  teacher: '', today: '', late: '08:00',
+  roster: {}, rosterCount: 0, scanned: {},
+  queue: store.get('queue', []), recent: store.get('recent', []),
+  sending: false, netError: false,
+  scanner: null, scanning: false, lastSeen: {}, resultTimer: null,
+  report: null,
+};
+
+/* ---------- เข้าสู่ระบบ ---------- */
+
+function showScreen(name) {
+  $('#login').hidden = name !== 'login';
+  $('#loading').hidden = name !== 'loading';
+  $('#app').hidden = name !== 'app';
+  $('#btnLogout').hidden = name !== 'app';
+}
+
+async function login(pin, silent) {
+  showScreen('loading');
+  $('#loginErr').textContent = '';
+  try {
+    const r = await api('login', { pin });
+    store.set('pin', pin);
+    S.teacher = r.teacher;
+    S.today = r.today;
+    S.late = r.settings.late_time;
+    S.roster = {};
+    r.roster.forEach(s => { S.roster[s.id] = s; });
+    S.rosterCount = r.roster.length;
+    S.scanned = r.scanned || {};
+    // รายการที่ยังค้างส่งจากครั้งก่อน
+    S.queue.forEach(q => {
+      if (localDate(new Date(q.ts)) === S.today && !S.scanned[q.id]) S.scanned[q.id] = { status: q.status, time: q.time, pending: true };
+    });
+    if (store.get('recentDate') !== S.today) { S.recent = []; saveRecent(); store.set('recentDate', S.today); }
+
+    $('#who').textContent = S.teacher;
+    $('#rDate').value = S.today;
+    showScreen('app');
+    renderStats();
+    renderRecent();
+    processQueue();
+  } catch (e) {
+    showScreen('login');
+    if (!e.network) store.del('pin');
+    $('#loginErr').textContent = silent && !e.network ? '' : e.message;
+  }
+}
+
+$('#loginForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const pin = $('#pin').value.trim();
+  if (pin) login(pin, false);
+});
+
+$('#btnLogout').addEventListener('click', async () => {
+  if (S.queue.length && !confirm('ยังมีรายการรอส่ง ' + S.queue.length + ' รายการ ออกจากระบบเลยไหม? (รายการจะยังเก็บไว้ในเครื่องนี้)')) return;
+  if (S.scanning) await toggleCam();
+  store.del('pin');
+  $('#pin').value = '';
+  showScreen('login');
+});
+
+/* ---------- แท็บ ---------- */
+
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', async () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  const tab = b.dataset.tab;
+  $('#tab-scan').hidden = tab !== 'scan';
+  $('#tab-report').hidden = tab !== 'report';
+  if (tab === 'report') {
+    if (S.scanning) await toggleCam();
+    loadReport();
+  }
+}));
+
+/* ---------- สแกน ---------- */
+
+async function toggleCam() {
+  const btn = $('#btnCam');
+  if (S.scanning) {
+    try { await S.scanner.stop(); } catch (e) {}
+    S.scanning = false;
+    btn.textContent = 'เปิดกล้อง';
+    btn.classList.remove('stop');
+    return;
+  }
+  initAudio();
+  const F = Html5QrcodeSupportedFormats;
+  if (!S.scanner) {
+    S.scanner = new Html5Qrcode('reader', {
+      formatsToSupport: [F.QR_CODE, F.CODE_128, F.CODE_39, F.EAN_13],
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+      verbose: false,
+    });
+  }
+  try {
+    await S.scanner.start(
+      { facingMode: 'environment' },
+      { fps: 12, qrbox: (w, h) => ({ width: Math.max(120, Math.floor(w * 0.85)), height: Math.max(80, Math.floor(Math.min(w, h) * 0.55)) }) },
+      text => handleCode(text),
+      () => {}
+    );
+    S.scanning = true;
+    btn.textContent = 'ปิดกล้อง';
+    btn.classList.add('stop');
+  } catch (e) {
+    showResult('err', 'เปิดกล้องไม่ได้', 'กดอนุญาตให้ใช้กล้องในเบราว์เซอร์ แล้วลองใหม่');
+  }
+}
+$('#btnCam').addEventListener('click', toggleCam);
+
+$('#manualForm').addEventListener('submit', e => {
+  e.preventDefault();
+  initAudio();
+  const v = $('#manualId').value.trim();
+  if (!v) return;
+  S.lastSeen[v] = 0;
+  handleCode(v);
+  $('#manualId').value = '';
+});
+
+function handleCode(raw) {
+  const id = String(raw).trim();
+  if (!id) return;
+  const nowMs = Date.now();
+  if (S.lastSeen[id] && nowMs - S.lastSeen[id] < 3000) return; // กันกล้องอ่านบัตรเดิมซ้ำรัว ๆ
+  S.lastSeen[id] = nowMs;
+
+  const d = new Date(nowMs);
+  if (localDate(d) !== S.today) { // เปิดหน้าทิ้งไว้ข้ามวัน
+    S.today = localDate(d); S.scanned = {}; S.recent = []; saveRecent(); store.set('recentDate', S.today);
+  }
+
+  const st = S.roster[id];
+  if (!st) { showResult('err', 'ไม่พบรหัส ' + id, 'ไม่มีในรายชื่อนักเรียน'); beep('err'); return; }
+
+  const prev = S.scanned[id];
+  if (prev) {
+    showResult('dup', st.name, 'สแกนแล้ว' + (prev.time ? ' เวลา ' + prev.time.slice(0, 5) : '') + ' · ' + prev.status);
+    beep('dup');
+    return;
+  }
+
+  const time = localTime(d);
+  const status = time.slice(0, 5) > S.late ? 'สาย' : 'มา';
+  S.scanned[id] = { status, time, pending: true };
+  showResult(status === 'สาย' ? 'late' : 'ok', st.name, st.room + (st.no ? ' เลขที่ ' + st.no : '') + ' · ' + status + ' ' + time.slice(0, 5));
+  beep('ok');
+
+  S.recent.unshift({ id, name: st.name, room: st.room, status, time, sync: 'pending' });
+  S.recent = S.recent.slice(0, 30);
+  saveRecent();
+  S.queue.push({ id, ts: nowMs, status, time });
+  store.set('queue', S.queue);
+  renderStats();
+  renderRecent();
+  processQueue();
+}
+
+async function processQueue() {
+  if (S.sending || !S.queue.length) return;
+  S.sending = true;
+  renderStats();
+  try {
+    while (S.queue.length) {
+      const q = S.queue[0];
+      const r = await api('scan', { id: q.id, ts: q.ts });
+      const rec = S.recent.find(x => x.id === q.id && x.sync === 'pending');
+      if (r.result === 'ok' || r.result === 'duplicate') {
+        S.scanned[q.id] = { status: r.status, time: r.time };
+        if (rec) { rec.status = r.status; rec.sync = r.result === 'ok' ? 'ok' : 'dup'; }
+      } else {
+        delete S.scanned[q.id];
+        if (rec) rec.sync = 'err';
+      }
+      S.queue.shift();
+      store.set('queue', S.queue);
+      saveRecent();
+      S.netError = false;
+      renderRecent();
+      renderStats();
+    }
+  } catch (e) {
+    S.netError = true;
+    if (/PIN/.test(e.message)) { store.del('pin'); showScreen('login'); $('#loginErr').textContent = e.message; }
+    else setTimeout(processQueue, 5000);
+  } finally {
+    S.sending = false;
+    renderStats();
+  }
+}
+window.addEventListener('online', processQueue);
+
+function showResult(kind, big, sub) {
+  const el = $('#result');
+  el.className = 'result ' + kind;
+  el.innerHTML = '<div class="big">' + esc(big) + '</div><div class="sub">' + esc(sub) + '</div>';
+  clearTimeout(S.resultTimer);
+  S.resultTimer = setTimeout(() => {
+    el.className = 'result idle';
+    el.innerHTML = '<div class="sub">พร้อมสแกนคนถัดไป</div>';
+  }, 4000);
+}
+
+function renderStats() {
+  const vals = Object.values(S.scanned);
+  $('#stScanned').textContent = vals.filter(v => v.status === 'มา' || v.status === 'สาย').length;
+  $('#stTotal').textContent = S.rosterCount;
+  $('#stLate').textContent = vals.filter(v => v.status === 'สาย').length;
+  $('#stPending').textContent = S.queue.length;
+  $('#stPendingLbl').textContent = S.netError && S.queue.length ? 'รอส่ง (เน็ตหลุด)' : 'รอส่ง';
+}
+
+function renderRecent() {
+  $('#recentEmpty').hidden = S.recent.length > 0;
+  $('#recent').innerHTML = S.recent.map(r =>
+    '<li><div class="n">' + esc(r.name) + '<small>' + esc(r.room) + ' · ' + esc(r.time.slice(0, 5)) + '</small></div>' +
+    '<span class="chip ' + (STATUS_CLASS[r.status] || 's-none') + '">' + esc(r.status) + '</span>' +
+    '<span class="sync" title="สถานะการส่ง">' + (SYNC_ICON[r.sync] || '') + '</span></li>'
+  ).join('');
+}
+function saveRecent() { store.set('recent', S.recent); }
+
+/* เสียงและการสั่น */
+let actx = null;
+function initAudio() {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) {}
+}
+function beep(kind) {
+  try {
+    if (actx) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = kind === 'ok' ? 1200 : kind === 'dup' ? 600 : 280;
+      g.gain.value = 0.08;
+      o.connect(g); g.connect(actx.destination);
+      o.start();
+      o.stop(actx.currentTime + (kind === 'ok' ? 0.12 : 0.35));
+    }
+  } catch (e) {}
+  if (navigator.vibrate) navigator.vibrate(kind === 'ok' ? 60 : [80, 60, 80]);
+}
+
+/* ---------- รายงาน ---------- */
+
+$('#btnReport').addEventListener('click', loadReport);
+$('#rDate').addEventListener('change', loadReport);
+$('#rRoom').addEventListener('change', () => { store.set('room', $('#rRoom').value); renderReport(); });
+
+async function loadReport() {
+  $('#rErr').textContent = '';
+  $('#rBody').innerHTML = '<div class="panel muted">กำลังโหลด...</div>';
+  try {
+    S.report = await api('report', { date: $('#rDate').value || S.today });
+    const sel = $('#rRoom');
+    const want = store.get('room', '__all');
+    sel.innerHTML = '<option value="__all">ทุกห้อง</option>' +
+      S.report.rooms.map(r => '<option value="' + esc(r.room) + '">' + esc(r.room) + '</option>').join('');
+    sel.value = S.report.rooms.some(r => r.room === want) ? want : '__all';
+    renderReport();
+  } catch (e) {
+    $('#rBody').innerHTML = '';
+    $('#rErr').textContent = e.message;
+  }
+}
+
+function counts(students) {
+  const c = { 'มา': 0, 'สาย': 0, 'ลา': 0, 'ขาด': 0, '': 0 };
+  students.forEach(s => { c[s.status in c ? s.status : '']++; });
+  return c;
+}
+function chips(c, total) {
+  return ['มา', 'สาย', 'ลา', 'ขาด'].map(k => '<span class="chip ' + STATUS_CLASS[k] + '">' + k + ' ' + c[k] + '</span>').join('') +
+    (c[''] ? '<span class="chip s-none">ยังไม่สแกน ' + c[''] + '</span>' : '') +
+    '<span class="chip s-none">ทั้งหมด ' + total + '</span>';
+}
+
+function renderReport() {
+  if (!S.report) return;
+  const room = $('#rRoom').value;
+  const rooms = S.report.rooms.filter(r => room === '__all' || r.room === room);
+  const all = rooms.flatMap(r => r.students);
+  $('#rSummary').innerHTML = chips(counts(all), all.length);
+
+  $('#rBody').innerHTML = rooms.map(r => {
+    const c = counts(r.students);
+    const pct = r.students.length ? Math.round((c['มา'] + c['สาย']) * 100 / r.students.length) : 0;
+    return '<div class="panel"><div class="roomhead"><h3>' + esc(r.room) + '</h3><span class="muted">มาเรียน ' + pct + '%</span></div>' +
+      '<div class="summary">' + chips(c, r.students.length) + '</div><ul class="list">' +
+      r.students.map(s =>
+        '<li><span class="no">' + esc(s.no) + '</span><div class="n">' + esc(s.name) +
+        '<small>' + esc(s.id) + (s.time ? ' · ' + esc(s.time.slice(0, 5)) : '') + '</small></div>' +
+        '<select data-id="' + esc(s.id) + '" class="chip ' + (STATUS_CLASS[s.status] || 's-none') + '">' +
+        (s.status ? '' : '<option value="" selected disabled>ยังไม่สแกน</option>') +
+        ['มา', 'สาย', 'ลา', 'ขาด'].map(k => '<option' + (k === s.status ? ' selected' : '') + '>' + k + '</option>').join('') +
+        '</select></li>'
+      ).join('') + '</ul></div>';
+  }).join('') || '<div class="panel muted">ไม่มีข้อมูล</div>';
+}
+
+$('#rBody').addEventListener('change', async e => {
+  const sel = e.target.closest('select[data-id]');
+  if (!sel) return;
+  const id = sel.dataset.id, status = sel.value, date = S.report.date;
+  sel.disabled = true;
+  try {
+    await api('mark', { id, status, date });
+    S.report.rooms.forEach(r => r.students.forEach(s => { if (s.id === id) s.status = status; }));
+    if (date === S.today) { S.scanned[id] = Object.assign({}, S.scanned[id], { status }); renderStats(); }
+    renderReport();
+  } catch (err) {
+    alert(err.message);
+    renderReport();
+  }
+});
+
+/* ---------- เริ่มต้น ---------- */
+const savedPin = store.get('pin', '');
+if (savedPin) login(savedPin, true); else showScreen('login');
+</script>
+</body>
+</html>
