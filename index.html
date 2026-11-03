@@ -76,7 +76,7 @@
   .btn:disabled{opacity:.5;cursor:default}
 
   /* ---------- แท็บ ---------- */
-  .tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border:1px solid var(--ink-line);border-radius:999px;padding:4px;margin-bottom:14px}
+  .tabs{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--paper);border:1px solid var(--ink-line);border-radius:999px;padding:4px;margin-bottom:14px}
   .tabs button{border:0;background:none;border-radius:999px;padding:9px;font-weight:600;color:var(--lead-2);cursor:pointer}
   .tabs button[aria-selected="true"]{background:var(--ink);color:#fff}
 
@@ -146,6 +146,39 @@
     background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
     background-position:calc(100% - 11px) 52%,calc(100% - 7px) 52%;background-size:4px 4px;background-repeat:no-repeat}
 
+  /* ---------- สรุปผล ---------- */
+  .sum-head{display:flex;gap:8px;align-items:center}
+  .sum-head select{flex:1;min-width:0;padding:10px 12px;border:2px solid var(--ink-soft);border-radius:var(--radius);background:var(--paper)}
+  .tablewrap{overflow-x:auto;margin:14px -18px -18px;border-top:1px solid var(--ink-line);-webkit-overflow-scrolling:touch}
+  table.sum{border-collapse:separate;border-spacing:0;width:100%;font-size:14px}
+  table.sum th,table.sum td{padding:8px 6px;border-bottom:1px solid var(--ink-line);text-align:center;white-space:nowrap}
+  table.sum thead th{position:sticky;top:0;background:var(--sheet);font-weight:600;font-size:13px;color:var(--lead-2)}
+  table.sum .nm{position:sticky;left:0;z-index:1;background:var(--paper);text-align:left;min-width:150px;max-width:190px;white-space:normal;line-height:1.3;padding-left:18px;border-right:1px solid var(--ink-line)}
+  table.sum thead .nm{z-index:2;background:var(--sheet)}
+  table.sum .nm small{display:block;color:var(--muted);font-size:12px}
+  .mk{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:12px;font-weight:700}
+  .mk.ok{background:var(--okbg);color:var(--ok)} .mk.late{background:var(--warnbg);color:var(--warn)}
+  .mk.leave{background:var(--leavebg);color:var(--leave)} .mk.abs{background:var(--errbg);color:var(--err)}
+  .mk.none{color:var(--ink-soft)}
+  table.sum .pctc{font-weight:700;font-size:15px}
+  table.sum .cnt{color:var(--muted);border-right:1px solid var(--ink-line)}
+  table.sum .nm{min-width:132px}
+  table.sum tr.fail .pctc{color:var(--err)}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--muted);margin-top:10px}
+  .legend span{display:inline-flex;align-items:center;gap:4px}
+  .print-title{display:none}
+  @media print{
+    body{background:#fff}
+    .masthead,.tabs,#inapp,.no-print{display:none!important}
+    main{max-width:none;padding:0}
+    .sheet{border:0;padding:0}
+    .print-title{display:block;font-weight:700;font-size:16px;margin-bottom:6px}
+    .tablewrap{overflow:visible;margin:10px 0 0}
+    table.sum{font-size:11px}
+    table.sum th,table.sum td{padding:3px 4px}
+    table.sum .nm{position:static}
+  }
+
   .warn{background:var(--warnbg);color:var(--warn);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:15px}
   .warn a{color:inherit;font-weight:600}
 
@@ -183,7 +216,8 @@
   <section id="app" hidden>
     <div class="tabs" role="tablist">
       <button role="tab" data-tab="scan" aria-selected="true">เช็คชื่อ</button>
-      <button role="tab" data-tab="report" aria-selected="false">รายงาน</button>
+      <button role="tab" data-tab="report" aria-selected="false">รายวัน</button>
+      <button role="tab" data-tab="sum" aria-selected="false">สรุปผล</button>
     </div>
 
     <div id="tab-scan">
@@ -236,6 +270,23 @@
         <div id="rSummary" class="summary"></div>
       </div>
       <div id="rBody"></div>
+    </div>
+
+    <div id="tab-sum" hidden>
+      <div class="sheet">
+        <div class="print-title">สรุปผลการเข้าร่วมกิจกรรมติวเข้มตะลุยโจทย์ NETSAT A-Level SOPIT <span id="sPrintRoom"></span></div>
+        <div class="sum-head no-print">
+          <select id="sRoom" aria-label="ห้อง"><option value="__all">ทุกห้อง</option></select>
+          <button class="btn" id="btnPrintSum" type="button">พิมพ์</button>
+        </div>
+        <div id="sErr" class="error"></div>
+        <div id="sSummary" class="summary"></div>
+        <div class="legend">
+          <span><i class="mk ok">✓</i>มา</span><span><i class="mk late">ส</i>สาย</span>
+          <span><i class="mk leave">ล</i>ลา</span><span><i class="mk abs">✗</i>ขาด</span>
+        </div>
+        <div class="tablewrap" id="sBody"></div>
+      </div>
     </div>
   </section>
 </main>
@@ -316,7 +367,9 @@ document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click
   const tab = b.dataset.tab;
   $('#tab-scan').hidden = tab !== 'scan';
   $('#tab-report').hidden = tab !== 'report';
+  $('#tab-sum').hidden = tab !== 'sum';
   if (tab === 'report') loadReport();
+  if (tab === 'sum') loadSummary();
 }));
 
 /* ---------- ถ่ายรูปบัตร แล้วอ่านโค้ดจากภาพ ---------- */
@@ -595,6 +648,60 @@ $('#rBody').addEventListener('change', async e => {
     renderReport();
   }
 });
+
+/* ---------- สรุปผล ---------- */
+
+const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+const thaiShort = d => { const p = d.split('-'); return Number(p[2]) + ' ' + TH_M[Number(p[1]) - 1]; };
+const MK = { 'มา': ['ok', '✓'], 'สาย': ['late', 'ส'], 'ลา': ['leave', 'ล'], 'ขาด': ['abs', '✗'] };
+
+$('#sRoom').addEventListener('change', () => { store.set('sroom', $('#sRoom').value); renderSummary(); });
+$('#btnPrintSum').addEventListener('click', () => window.print());
+
+async function loadSummary() {
+  $('#sErr').textContent = '';
+  $('#sSummary').innerHTML = '';
+  $('#sBody').innerHTML = '<div class="muted" style="padding:14px 18px">กำลังโหลด...</div>';
+  try {
+    S.sum = await api('summary');
+    const rooms = [...new Set(S.sum.students.map(s => s.room))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const want = store.get('sroom', '__all');
+    $('#sRoom').innerHTML = '<option value="__all">ทุกห้อง</option>' + rooms.map(r => '<option value="' + esc(r) + '">' + esc(r) + '</option>').join('');
+    $('#sRoom').value = rooms.includes(want) ? want : '__all';
+    renderSummary();
+  } catch (e) {
+    $('#sBody').innerHTML = '';
+    $('#sErr').textContent = e.message;
+  }
+}
+
+function renderSummary() {
+  const r = S.sum;
+  if (!r) return;
+  const room = $('#sRoom').value;
+  const list = r.students.filter(s => room === '__all' || s.room === room);
+  const passN = list.filter(s => s.pass).length;
+  $('#sPrintRoom').textContent = room === '__all' ? '' : '(' + room + ')';
+  $('#sSummary').innerHTML =
+    '<span class="chip s-none">เช็คชื่อแล้ว ' + r.dates.length + ' วัน</span>' +
+    '<span class="chip s-ok">ผ่าน ' + passN + ' คน</span>' +
+    '<span class="chip s-abs">ไม่ผ่าน ' + (list.length - passN) + ' คน</span>' +
+    '<span class="chip s-none">เกณฑ์ผ่าน ' + r.pass + '%</span>';
+  if (!r.dates.length) {
+    $('#sBody').innerHTML = '<div class="muted" style="padding:14px 18px">ยังไม่มีวันที่เช็คชื่อ</div>';
+    return;
+  }
+  $('#sBody').innerHTML = '<table class="sum"><thead><tr><th class="nm">ชื่อ-สกุล</th><th>ร้อยละ</th><th>ผล</th><th>มา</th>' +
+    r.dates.map(d => '<th>' + thaiShort(d) + '</th>').join('') +
+    '</tr></thead><tbody>' +
+    list.map(s => '<tr class="' + (s.pass ? '' : 'fail') + '"><td class="nm">' + esc(s.name) +
+      '<small>' + esc(s.room) + (s.no ? ' เลขที่ ' + esc(s.no) : '') + '</small></td>' +
+      '<td class="pctc">' + s.pct.toFixed(s.pct % 1 ? 1 : 0) + '%</td>' +
+      '<td><span class="chip ' + (s.pass ? 's-ok' : 's-abs') + '">' + (s.pass ? 'ผ่าน' : 'ไม่ผ่าน') + '</span></td>' +
+      '<td class="cnt">' + s.came + '/' + r.dates.length + '</td>' +
+      s.att.map(a => { const m = MK[a]; return '<td>' + (m ? '<i class="mk ' + m[0] + '" title="' + a + '">' + m[1] + '</i>' : '<i class="mk none">·</i>') + '</td>'; }).join('') + '</tr>'
+    ).join('') + '</tbody></table>';
+}
 
 /* ---------- เปิดในแอปแชต: แนะนำให้เปิดในเบราว์เซอร์ ---------- */
 const UA = navigator.userAgent || '';
