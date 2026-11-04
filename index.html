@@ -257,6 +257,22 @@
   .hbar .track{height:12px;background:var(--sheet);border-radius:6px;overflow:hidden}
   .hbar .fill{height:100%;background:var(--ink);border-radius:0 4px 4px 0}
   .hbar .v{color:var(--lead-2);font-size:13px;white-space:nowrap}
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:12px;padding:4px;background:var(--sheet);border-radius:var(--radius)}
+  .seg button{border:0;background:none;padding:9px 6px;border-radius:calc(var(--radius) - 3px);font:inherit;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer}
+  .seg button[aria-selected="true"]{background:var(--ink);color:#fff}
+  .daypick{display:grid;grid-template-columns:44px 1fr 44px;gap:6px;margin-top:10px}
+  .daypick select{min-width:0;padding:10px 12px;border:2px solid var(--ink-soft);border-radius:var(--radius);background:var(--paper);font:inherit;font-weight:600;text-align:center}
+  .daypick button{border:2px solid var(--ink-soft);background:var(--paper);border-radius:var(--radius);font-size:22px;line-height:1;color:var(--ink);cursor:pointer}
+  .daypick button:disabled{opacity:.35;cursor:default}
+  .stack{display:flex;gap:2px;height:26px;border-radius:6px;overflow:hidden;margin-top:12px;background:var(--paper)}
+  .stack i{display:block;height:100%}
+  .lg{display:grid;gap:6px;margin-top:12px;font-size:14px}
+  .lg div{display:grid;grid-template-columns:14px 1fr auto 46px;gap:8px;align-items:center}
+  .lg div i{width:12px;height:12px;border-radius:3px}
+  .lg div b{font-weight:700} .lg div span.p{color:var(--muted);text-align:right}
+  .c-ok{background:var(--ok)} .c-act{background:var(--act)} .c-leave{background:var(--leave)} .c-abs{background:var(--err)} .c-none{background:var(--ink-soft)}
+  .barinfo .go{margin-left:8px;border:0;background:var(--sheet);color:var(--ink);font:inherit;font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px;cursor:pointer}
+  table.sum th.hl,table.sum td.hl{background:rgba(201,162,39,.16)}
   .watch li .pct{font-size:16px}
 
   .warn{background:var(--warnbg);color:var(--warn);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;font-size:15px}
@@ -390,23 +406,32 @@
           <select id="sRoom" aria-label="ห้อง"><option value="__all">ทุกห้อง</option></select>
           <button class="btn" id="btnPrintSum" type="button">พิมพ์</button>
         </div>
+        <div class="seg no-print" id="sMode" role="tablist" aria-label="มุมมอง">
+          <button type="button" role="tab" data-mode="all" aria-selected="true">ภาพรวมทั้งหมด</button>
+          <button type="button" role="tab" data-mode="day" aria-selected="false">แยกรายวัน</button>
+        </div>
+        <div class="daypick no-print" id="sDayPick" hidden>
+          <button type="button" id="sPrev" aria-label="วันก่อนหน้า">‹</button>
+          <select id="sDate" aria-label="วันที่"></select>
+          <button type="button" id="sNext" aria-label="วันถัดไป">›</button>
+        </div>
         <div id="sErr" class="error"></div>
         <div class="kpis" id="sKpis"></div>
       </div>
 
       <div class="sheet" id="sDash" hidden>
-        <div class="chart-title"><h2>อัตรามาเรียนรายวัน</h2><small>แตะแท่งเพื่อดูตัวเลข</small></div>
+        <div class="chart-title"><h2 id="sDashT">อัตรามาเรียนรายวัน</h2><small id="sDashS">แตะแท่งเพื่อดูตัวเลข</small></div>
         <div class="vbars" id="sDays"></div>
         <div class="barinfo" id="sDayInfo"></div>
       </div>
 
       <div class="sheet" id="sRoomsBox" hidden>
-        <div class="chart-title"><h2>ผ่านเกณฑ์รายห้อง</h2><small>คนที่ผ่าน / ทั้งหมด</small></div>
+        <div class="chart-title"><h2 id="sRoomsT">ผ่านเกณฑ์รายห้อง</h2><small id="sRoomsS">คนที่ผ่าน / ทั้งหมด</small></div>
         <div class="hbars" id="sRooms"></div>
       </div>
 
       <div class="sheet" id="sWatchBox" hidden>
-        <div class="chart-title"><h2>ต้องติดตาม</h2><small>ต่ำกว่าเกณฑ์ เรียงจากน้อยไปมาก</small></div>
+        <div class="chart-title"><h2 id="sWatchT">ต้องติดตาม</h2><small id="sWatchS">ต่ำกว่าเกณฑ์ เรียงจากน้อยไปมาก</small></div>
         <ul class="list watch" id="sWatch"></ul>
       </div>
 
@@ -942,6 +967,23 @@ const MK = { 'มา': ['ok', '✓'], 'สาย': ['ok', '✓'], 'กิจก�
 
 $('#sRoom').addEventListener('change', () => { store.set('sroom', $('#sRoom').value); renderSummary(); });
 $('#btnPrintSum').addEventListener('click', () => window.print());
+const TH_WD = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+const thaiDay = d => { const p = d.split('-').map(Number); return TH_WD[new Date(p[0], p[1] - 1, p[2]).getDay()] + ' ' + thaiShort(d); };
+S.sumMode = store.get('smode', 'all');
+function setSumMode(m, date) {
+  S.sumMode = m; store.set('smode', m);
+  if (date) S.sumDay = date;
+  renderSummary();
+}
+$('#sMode').addEventListener('click', e => { const b = e.target.closest('button[data-mode]'); if (b) setSumMode(b.dataset.mode); });
+$('#sDate').addEventListener('change', () => { S.sumDay = $('#sDate').value; renderSummary(); });
+$('#sPrev').addEventListener('click', () => stepDay(-1));
+$('#sNext').addEventListener('click', () => stepDay(1));
+function stepDay(k) {
+  const ds = S.sum ? S.sum.dates : [];
+  const i = ds.indexOf(S.sumDay) + k;
+  if (i >= 0 && i < ds.length) { S.sumDay = ds[i]; renderSummary(); }
+}
 
 async function loadSummary() {
   $('#sErr').textContent = '';
@@ -966,14 +1008,25 @@ function renderSummary() {
   const room = $('#sRoom').value;
   const list = r.students.filter(s => room === '__all' || s.room === room);
   const passN = list.filter(s => s.pass).length;
-  $('#sPrintRoom').textContent = room === '__all' ? '' : '(' + room + ')';
-  renderDashboard(r, list, room, passN);
+  if (!r.dates.includes(S.sumDay)) S.sumDay = r.dates[r.dates.length - 1];
+  const dayMode = S.sumMode === 'day' && r.dates.length > 0;
+  const di = dayMode ? r.dates.indexOf(S.sumDay) : -1;
+  document.querySelectorAll('#sMode button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === (dayMode ? 'day' : 'all'))));
+  $('#sDayPick').hidden = !dayMode;
+  if (dayMode) {
+    $('#sDate').innerHTML = r.dates.slice().reverse().map(d => '<option value="' + d + '">' + thaiDay(d) + '</option>').join('');
+    $('#sDate').value = S.sumDay;
+    $('#sPrev').disabled = di <= 0;
+    $('#sNext').disabled = di >= r.dates.length - 1;
+  }
+  $('#sPrintRoom').textContent = (room === '__all' ? '' : '(' + room + ')') + (dayMode ? ' วันที่ ' + thaiDay(S.sumDay) : '');
+  if (dayMode) renderDay(r, list, room, di); else renderDashboard(r, list, room, passN);
   if (!r.dates.length) {
     $('#sBody').innerHTML = '<div class="muted" style="padding:14px 18px">ยังไม่มีวันที่เช็คชื่อ</div>';
     return;
   }
   $('#sBody').innerHTML = '<table class="sum"><thead><tr><th class="nm">ชื่อ-สกุล</th><th>ร้อยละ</th><th>ผล</th><th>มา</th><th>ลา</th>' +
-    r.dates.map(d => '<th>' + thaiShort(d) + '</th>').join('') +
+    r.dates.map((d, i) => '<th' + (i === di ? ' class="hl"' : '') + '>' + thaiShort(d) + '</th>').join('') +
     '</tr></thead><tbody>' +
     list.map(s => '<tr class="' + (s.pass ? '' : 'fail') + '"><td class="nm">' + esc(s.name) +
       '<small>' + esc(s.room) + (s.no ? ' เลขที่ ' + esc(s.no) : '') + '</small></td>' +
@@ -981,7 +1034,7 @@ function renderSummary() {
       '<td><span class="chip ' + (s.pass ? 's-ok' : 's-abs') + '">' + (s.pass ? 'ผ่าน' : 'ไม่ผ่าน') + '</span></td>' +
       '<td>' + s.came + '/' + r.dates.length + '</td>' +
       '<td class="cnt">' + (s.leaves ? s.leaves + (s.leaveAbs ? '<small class="la">=ขาด ' + s.leaveAbs + '</small>' : '') : '–') + '</td>' +
-      s.att.map(a => { const m = MK[a]; return '<td>' + (m ? '<i class="mk ' + m[0] + '" title="' + a + '">' + m[1] + '</i>' : '<i class="mk none">·</i>') + '</td>'; }).join('') + '</tr>'
+      s.att.map((a, i) => { const m = MK[a]; return '<td' + (i === di ? ' class="hl"' : '') + '>' + (m ? '<i class="mk ' + m[0] + '" title="' + a + '">' + m[1] + '</i>' : '<i class="mk none">·</i>') + '</td>'; }).join('') + '</tr>'
     ).join('') + '</tbody></table>';
 }
 
@@ -995,6 +1048,10 @@ function renderDashboard(r, list, room, passN) {
     '<div class="kpi"><b>' + fmt(avg) + '<small>%</small></b><span>อัตราเข้าเรียนเฉลี่ย</span></div>' +
     '<div class="kpi ' + (n && passN === n ? 'good' : (n - passN ? 'bad' : '')) + '"><b>' + passN + '<small>/' + n + '</small></b><span>ผ่านเกณฑ์ ' + r.pass + '%</span></div>';
 
+  $('#sDayInfo').hidden = false;
+  $('#sDashT').textContent = 'อัตรามาเรียนรายวัน'; $('#sDashS').textContent = 'แตะแท่งเพื่อดูตัวเลข';
+  $('#sRoomsT').textContent = 'ผ่านเกณฑ์รายห้อง'; $('#sRoomsS').textContent = 'คนที่ผ่าน / ทั้งหมด';
+  $('#sWatchT').textContent = 'ต้องติดตาม'; $('#sWatchS').textContent = 'ต่ำกว่าเกณฑ์ เรียงจากน้อยไปมาก';
   const has = days > 0 && n > 0;
   $('#sDash').hidden = !has;
   $('#sRoomsBox').hidden = !has || room !== '__all';
@@ -1018,8 +1075,10 @@ function renderDashboard(r, list, room, passN) {
   const info = i => {
     const p = per[i];
     document.querySelectorAll('#sDays .vbar').forEach((b, j) => b.classList.toggle('on', j === i));
-    $('#sDayInfo').textContent = thaiShort(p.d) + '  มา ' + p.came + '/' + n + ' คน (' + Math.round(p.pct) + '%)  ลา ' + p.leave + '  ขาด ' + p.abs;
+    $('#sDayInfo').innerHTML = esc(thaiShort(p.d) + '  มา ' + p.came + '/' + n + ' คน (' + Math.round(p.pct) + '%)  ลา ' + p.leave + '  ขาด ' + p.abs) +
+      '<button type="button" class="go no-print" data-d="' + p.d + '">ดูวันนี้</button>';
   };
+  $('#sDayInfo').onclick = e => { const b = e.target.closest('.go'); if (b) { setSumMode('day', b.dataset.d); scrollTo({ top: 0, behavior: 'smooth' }); } };
   $('#sDays').onclick = e => { const b = e.target.closest('.vbar'); if (b) info(Number(b.dataset.i)); };
   $('#sDays').onmouseover = $('#sDays').onclick;
   info(per.length - 1);
@@ -1042,6 +1101,59 @@ function renderDashboard(r, list, room, passN) {
     ? watch.map(s => '<li><div class="n">' + esc(s.name) + '<small>' + esc(s.room) + (s.no ? ' เลขที่ ' + esc(s.no) : '') +
         '  มา ' + s.came + '/' + days + (s.leaves ? '  ลา ' + s.leaves : '') + '</small></div><span class="pct pctc" style="color:var(--err);font-weight:700">' + fmt(s.pct) + '%</span></li>').join('')
     : '<li class="muted">ทุกคนผ่านเกณฑ์</li>';
+}
+
+function renderDay(r, list, room, i) {
+  const n = list.length;
+  const kind = a => (a === 'มา' || a === 'สาย') ? 'ok' : a === 'กิจกรรม' ? 'act' : a === 'ลา' ? 'leave' : a === 'ขาด' ? 'abs' : 'none';
+  const c = { ok: 0, act: 0, leave: 0, abs: 0, none: 0 };
+  list.forEach(s => c[kind(s.att[i])]++);
+  const came = c.ok + c.act, pct = n ? came * 100 / n : 0;
+  $('#sKpis').innerHTML =
+    '<div class="kpi"><b>' + came + '<small>/' + n + '</small></b><span>มาเรียน (รวมกิจกรรม)</span></div>' +
+    '<div class="kpi ' + (n ? (pct >= r.pass ? 'good' : 'bad') : '') + '"><b>' + Math.round(pct) + '<small>%</small></b><span>อัตรามาเรียนวันนี้</span></div>' +
+    '<div class="kpi"><b>' + c.leave + '</b><span>ลา (คน)</span></div>' +
+    '<div class="kpi' + (c.abs ? ' bad' : '') + '"><b>' + c.abs + '</b><span>ขาด (คน)' + (c.none ? ' · ยังไม่เช็ค ' + c.none : '') + '</span></div>';
+  const has = n > 0;
+  $('#sDash').hidden = !has;
+  $('#sRoomsBox').hidden = !has || room !== '__all';
+  $('#sWatchBox').hidden = !has;
+  if (!has) return;
+
+  // สัดส่วนสถานะของวันนั้น
+  const L = [['ok', 'มา'], ['act', 'กิจกรรม'], ['leave', 'ลา'], ['abs', 'ขาด'], ['none', 'ยังไม่เช็ค']].filter(([k]) => k !== 'none' || c.none);
+  $('#sDashT').textContent = 'สถานะวันที่ ' + thaiDay(r.dates[i]);
+  $('#sDashS').textContent = 'จาก ' + n + ' คน';
+  $('#sDays').onclick = $('#sDays').onmouseover = null;
+  $('#sDays').innerHTML = '<div class="stack" role="img" aria-label="' + L.map(([k, t]) => t + ' ' + c[k]).join(' ') + '">' +
+      L.filter(([k]) => c[k]).map(([k, t]) => '<i class="c-' + k + '" style="flex:' + c[k] + '" title="' + t + ' ' + c[k] + ' คน"></i>').join('') + '</div>' +
+    '<div class="lg">' + L.map(([k, t]) => '<div><i class="c-' + k + '"></i><span>' + t + '</span><b>' + c[k] + ' คน</b><span class="p">' + Math.round(c[k] * 100 / n) + '%</span></div>').join('') + '</div>';
+  $('#sDayInfo').innerHTML = '';
+  $('#sDayInfo').onclick = null;
+  $('#sDayInfo').hidden = true;
+
+  // มาเรียนรายห้องของวันนั้น
+  if (room === '__all') {
+    $('#sRoomsT').textContent = 'มาเรียนรายห้อง'; $('#sRoomsS').textContent = 'คนที่มา / ทั้งหมด';
+    const rooms = {};
+    list.forEach(s => { const x = rooms[s.room] || (rooms[s.room] = { n: 0, p: 0 }); x.n++; if (isPresent(s.att[i])) x.p++; });
+    $('#sRooms').innerHTML = Object.keys(rooms).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(k => {
+      const x = rooms[k], pc = x.p * 100 / x.n;
+      return '<div class="hbar"><span>' + esc(k) + '</span><div class="track"><div class="fill" style="width:' + Math.max(pc ? 2 : 0, pc) + '%"></div></div>' +
+        '<span class="v">' + x.p + '/' + x.n + ' (' + Math.round(pc) + '%)</span></div>';
+    }).join('');
+  }
+
+  // ลา ขาด และยังไม่เช็ค ของวันนั้น
+  $('#sWatchT').textContent = 'ลาและขาด'; $('#sWatchS').textContent = thaiDay(r.dates[i]);
+  const order = { abs: 0, none: 1, leave: 2 };
+  const miss = list.filter(s => !isPresent(s.att[i])).sort((a, b) => order[kind(a.att[i])] - order[kind(b.att[i])] ||
+    a.room.localeCompare(b.room, undefined, { numeric: true }) || (Number(a.no) || 0) - (Number(b.no) || 0));
+  const chip = { leave: ['s-leave', 'ลา'], abs: ['s-abs', 'ขาด'], none: ['', 'ยังไม่เช็ค'] };
+  $('#sWatch').innerHTML = miss.length
+    ? miss.map(s => { const ch = chip[kind(s.att[i])]; return '<li><div class="n">' + esc(s.name) + '<small>' + esc(s.room) + (s.no ? ' เลขที่ ' + esc(s.no) : '') +
+        '</small></div><span class="chip ' + ch[0] + '">' + ch[1] + '</span></li>'; }).join('')
+    : '<li class="muted">มาเรียนครบทุกคน</li>';
 }
 
 /* ---------- เปิดในแอปแชต: แนะนำให้เปิดในเบราว์เซอร์ ---------- */
