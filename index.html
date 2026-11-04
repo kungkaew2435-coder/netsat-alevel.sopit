@@ -62,8 +62,8 @@
   .error{color:var(--err);font-size:15px;margin-top:10px}
 
   /* ---------- เข้าสู่ระบบ ---------- */
-  .login{text-align:center;padding:28px 20px}
-  .login .big-logo{width:120px;height:148px;object-fit:contain;margin:4px auto 14px;display:block}
+  .login{text-align:center;padding:22px 16px}
+  .login .big-logo{width:92px;height:114px;object-fit:contain;margin:0 auto 10px;display:block}
   .login .big-fallback{width:112px;height:112px;margin:4px auto 10px;border-radius:50%;border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-weight:700;color:var(--ink);font-size:26px}
   .login h1{font-family:var(--display);font-weight:700;font-size:24px;line-height:1.25;margin:0;color:var(--ink)}
   .login p{margin:6px 0 20px;color:var(--lead-2)}
@@ -72,33 +72,32 @@
   .pin-row input:focus{border-color:var(--ink);outline:none}
   .pin-row input::placeholder{letter-spacing:0;font-family:var(--body);font-size:17px}
 
-  /* ---------- เลือกชื่อครู ---------- */
-  .who-pick{display:flex;align-items:center;gap:12px;width:100%;max-width:320px;margin:0 auto 12px;padding:12px 14px;
-    border:2px solid var(--ink-soft);border-radius:var(--radius);background:var(--paper);cursor:pointer;text-align:left}
-  .who-pick:hover{border-color:var(--ink)}
-  .who-pick .av{width:40px;height:40px;flex:0 0 40px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:700;font-size:18px}
-  .who-pick.empty .av{background:var(--ink-soft);color:var(--ink)}
-  .who-pick .tx{flex:1;min-width:0}
-  .who-pick .tx small{display:block;color:var(--muted);font-size:13px;line-height:1.2}
-  .who-pick .tx b{display:block;font-size:18px;line-height:1.3;color:var(--lead);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .who-pick.empty .tx b{color:var(--ink)}
-  .who-pick .chev{color:var(--muted);font-size:18px}
+  /* ---------- ปุ่มชื่อครู ---------- */
+  .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:440px;margin:0 auto;text-align:left}
+  .tbtn{display:flex;align-items:center;gap:10px;min-height:64px;padding:10px 12px;border:2px solid var(--ink-soft);border-radius:var(--radius);
+    background:var(--paper);cursor:pointer;font-size:16px;font-weight:600;line-height:1.3;color:var(--lead);text-align:left;-webkit-tap-highlight-color:transparent}
+  .tbtn:hover,.tbtn:focus-visible{border-color:var(--ink)}
+  .tbtn:active{transform:scale(.98)}
+  .tbtn .av{width:38px;height:38px;flex:0 0 38px;border-radius:50%;background:var(--ink-soft);color:var(--ink);display:grid;place-items:center;font-weight:700;font-size:17px}
+  .tbtn .nm{min-width:0}
+  .tbtn small{display:block;font-size:12px;font-weight:400;color:var(--muted)}
+  .tbtn.last{border-color:var(--ink);background:var(--sheet)}
+  .tbtn.last .av{background:var(--ink);color:#fff}
+  @media (max-width:340px){.tgrid{grid-template-columns:1fr}}
+  .pin-head{display:flex;align-items:center;gap:12px;padding:6px 18px 14px}
+  .pin-head .av{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:700;font-size:20px}
+  .pin-head .tx{flex:1;min-width:0}
+  .pin-head small{display:block;color:var(--muted);font-size:13px}
+  .pin-head b{display:block;font-size:19px;line-height:1.3}
+  .pin-head button{background:none;border:0;font-size:15px;color:var(--ink);font-weight:600;cursor:pointer;padding:6px}
+  .pin-pop{padding:0 18px 8px}
+  .pin-pop .pin-row{max-width:none}
+  .pin-pop .error{text-align:center}
   .scrim{position:fixed;inset:0;z-index:20;background:rgba(20,24,48,.45);display:flex;align-items:flex-end;justify-content:center;
     animation:fade .15s ease}
   .picker{width:100%;max-width:520px;max-height:78vh;display:flex;flex-direction:column;background:var(--paper);
     border-radius:22px 22px 0 0;padding:8px 0 calc(12px + env(safe-area-inset-bottom));animation:up .22s cubic-bezier(.2,.8,.2,1)}
   .picker .grab{width:44px;height:5px;border-radius:3px;background:var(--ink-soft);margin:4px auto 6px}
-  .picker-head{display:flex;justify-content:space-between;align-items:center;padding:4px 18px 10px;border-bottom:1px solid var(--ink-line)}
-  .picker-head h2{margin:0}
-  .picker-head button{background:none;border:0;font-size:15px;color:var(--ink);font-weight:600;cursor:pointer;padding:6px}
-  .picker-list{overflow-y:auto;padding:6px 10px}
-  .picker-list button{display:flex;align-items:center;gap:12px;width:100%;padding:12px 10px;border:0;background:none;border-radius:12px;
-    font-size:17px;text-align:left;cursor:pointer}
-  .picker-list button:hover,.picker-list button:focus-visible{background:var(--sheet)}
-  .picker-list button[aria-selected="true"]{background:var(--sheet);font-weight:600}
-  .picker-list .av{width:36px;height:36px;flex:0 0 36px;border-radius:50%;background:var(--ink-soft);color:var(--ink);display:grid;place-items:center;font-weight:700}
-  .picker-list button[aria-selected="true"] .av{background:var(--ink);color:#fff}
-  .picker-msg{padding:18px;color:var(--muted);text-align:center}
   @keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
   @keyframes fade{from{opacity:0}to{opacity:1}}
   @media (min-width:600px){.scrim{align-items:center}.picker{border-radius:22px}}
@@ -283,24 +282,26 @@
   <section id="login" class="sheet login" hidden>
     <img class="big-logo" src="logo.png" alt="ตราโรงเรียน" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'big-fallback',textContent:'SOPIT'}))">
     <h1>กิจกรรมติวเข้มตะลุยโจทย์<br>NETSAT A-Level SOPIT</h1>
-    <p>ระบบเช็คชื่อเข้าติว สำหรับครู</p>
-    <button type="button" class="who-pick empty" id="whoPick" aria-haspopup="dialog">
-      <span class="av" id="whoAv">?</span>
-      <span class="tx"><small>ครูผู้เข้าใช้</small><b id="whoName">แตะเพื่อเลือกชื่อครู</b></span>
-      <span class="chev" aria-hidden="true">▾</span>
-    </button>
-    <form id="loginForm" class="pin-row" hidden>
-      <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN ครู" aria-label="PIN ครู">
-      <button class="btn" type="submit">เข้าระบบ</button>
-    </form>
+    <p>แตะชื่อครูเพื่อเข้าระบบ</p>
+    <div class="tgrid" id="tGrid"><div class="muted">กำลังโหลดรายชื่อครู...</div></div>
     <div id="loginErr" class="error" role="alert"></div>
   </section>
 
-  <div class="scrim" id="pickScrim" hidden>
-    <div class="picker" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+  <div class="scrim" id="pinScrim" hidden>
+    <div class="picker" role="dialog" aria-modal="true" aria-labelledby="pinName">
       <div class="grab" aria-hidden="true"></div>
-      <div class="picker-head"><h2 id="pickTitle">เลือกชื่อครู</h2><button type="button" id="pickClose">ปิด</button></div>
-      <div class="picker-list" id="pickList"><div class="picker-msg">กำลังโหลดรายชื่อ...</div></div>
+      <div class="pin-head">
+        <span class="av" id="pinAv"></span>
+        <div class="tx"><small>เข้าระบบในชื่อ</small><b id="pinName"></b></div>
+        <button type="button" id="pinClose">ยกเลิก</button>
+      </div>
+      <div class="pin-pop">
+        <form id="loginForm" class="pin-row">
+          <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="ใส่ PIN" aria-label="PIN ครู">
+          <button class="btn" type="submit">เข้าระบบ</button>
+        </form>
+        <div id="pinErr" class="error" role="alert"></div>
+      </div>
     </div>
   </div>
 
@@ -445,6 +446,7 @@ const S = {
 
 function showScreen(name) {
   $('#login').hidden = name !== 'login';
+  if (name === 'login') loadTeachers();
   $('#loading').hidden = name !== 'loading';
   $('#app').hidden = name !== 'app';
   $('#whoBox').hidden = name !== 'app';
@@ -457,6 +459,7 @@ async function login(pin, silent) {
     const r = await api('login', { pin, name: silent ? '' : (S.pickName || '') });
     store.set('pin', pin);
     store.set('teacherName', r.teacher);
+    closePin();
     S.teacher = r.teacher;
     S.today = r.today;
     S.late = r.settings.late_time;
@@ -478,68 +481,63 @@ async function login(pin, silent) {
   } catch (e) {
     showScreen('login');
     if (!e.network) store.del('pin');
-    $('#loginErr').textContent = silent && !e.network ? '' : e.message;
+    if (!silent && !$('#pinScrim').hidden) { $('#pinErr').textContent = e.message; $('#pin').select(); }
+    else $('#loginErr').textContent = silent && !e.network ? '' : e.message;
   }
 }
 
 $('#loginForm').addEventListener('submit', e => {
   e.preventDefault();
   const pin = $('#pin').value.trim();
-  if (!S.pickName) { openPicker(); return; }
-  if (pin) login(pin, false);
-  else $('#pin').focus();
+  $('#pinErr').textContent = '';
+  if (pin) login(pin, false); else $('#pin').focus();
 });
 
-/* ---------- เลือกชื่อครู (หน้าต่างเด้ง) ---------- */
+/* ---------- ปุ่มชื่อครู + หน้าต่างใส่ PIN ---------- */
 const initial = n => (String(n).replace(/^(ครู|นาย|นางสาว|นาง|ดร\.)\s*/, '').trim().charAt(0) || '?');
-function setPick(name) {
-  S.pickName = name || '';
-  const has = !!S.pickName;
-  $('#whoPick').classList.toggle('empty', !has);
-  $('#whoName').textContent = has ? S.pickName : 'แตะเพื่อเลือกชื่อครู';
-  $('#whoAv').textContent = has ? initial(S.pickName) : '?';
-  $('#loginForm').hidden = !has;
-}
-async function openPicker() {
-  $('#pickScrim').hidden = false;
-  document.body.style.overflow = 'hidden';
-  const list = $('#pickList');
+async function loadTeachers() {
+  const grid = $('#tGrid');
   try {
     if (!S.teachers) S.teachers = (await api('teachers')).teachers;
-    list.innerHTML = S.teachers.length
-      ? S.teachers.map(n => '<button type="button" role="option" aria-selected="' + (n === S.pickName) + '" data-name="' + esc(n) + '">' +
-          '<span class="av">' + esc(initial(n)) + '</span>' + esc(n) + '</button>').join('')
-      : '<div class="picker-msg">ยังไม่มีครูที่ตั้ง PIN ในชีต Teachers</div>';
-    const cur = list.querySelector('[aria-selected="true"]') || list.querySelector('button');
-    if (cur) cur.focus();
+    const last = store.get('teacherName', '');
+    grid.innerHTML = S.teachers.length
+      ? S.teachers.map(n => '<button type="button" class="tbtn' + (n === last ? ' last' : '') + '" data-name="' + esc(n) + '">' +
+          '<span class="av">' + esc(initial(n)) + '</span><span class="nm">' + esc(n) +
+          (n === last ? '<small>ใช้ล่าสุด</small>' : '') + '</span></button>').join('')
+      : '<div class="muted">ยังไม่มีครูที่ตั้ง PIN ในชีต Teachers</div>';
   } catch (e) {
-    list.innerHTML = '<div class="picker-msg">' + esc(e.message) + '</div>';
+    S.teachers = null;
+    grid.innerHTML = '<div class="error">' + esc(e.message) + ' <button type="button" class="linkbtn" id="tRetry">ลองใหม่</button></div>';
   }
 }
-function closePicker() {
-  $('#pickScrim').hidden = true;
+function openPin(name) {
+  S.pickName = name;
+  $('#pinName').textContent = name;
+  $('#pinAv').textContent = initial(name);
+  $('#pin').value = '';
+  $('#pinErr').textContent = '';
+  $('#loginErr').textContent = '';
+  $('#pinScrim').hidden = false;
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('#pin').focus(), 50);
+}
+function closePin() {
+  $('#pinScrim').hidden = true;
   document.body.style.overflow = '';
 }
-$('#whoPick').addEventListener('click', openPicker);
-$('#pickClose').addEventListener('click', closePicker);
-$('#pickScrim').addEventListener('click', e => { if (e.target === e.currentTarget) closePicker(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#pickScrim').hidden) closePicker(); });
-$('#pickList').addEventListener('click', e => {
+$('#tGrid').addEventListener('click', e => {
+  if (e.target.id === 'tRetry') { loadTeachers(); return; }
   const b = e.target.closest('button[data-name]');
-  if (!b) return;
-  setPick(b.dataset.name);
-  store.set('teacherName', b.dataset.name);
-  closePicker();
-  $('#loginErr').textContent = '';
-  $('#pin').value = '';
-  $('#pin').focus();
+  if (b) openPin(b.dataset.name);
 });
+$('#pinClose').addEventListener('click', closePin);
+$('#pinScrim').addEventListener('click', e => { if (e.target === e.currentTarget) closePin(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#pinScrim').hidden) closePin(); });
 
 $('#btnLogout').addEventListener('click', () => {
   if (S.queue.length && !confirm('ยังมี ' + S.queue.length + ' รายการที่ยังไม่ได้ส่ง ออกจากระบบเลยไหม? รายการจะยังเก็บไว้ในเครื่องนี้')) return;
   store.del('pin');
   $('#pin').value = '';
-  setPick(store.get('teacherName', ''));
   showScreen('login');
 });
 
@@ -1058,7 +1056,6 @@ if (/\bLine\/|FBAN|FBAV|FB_IAB|Instagram|Messenger|MicroMessenger|TikTok|musical
 }
 
 /* ---------- เริ่มต้น ---------- */
-setPick(store.get('teacherName', ''));
 const savedPin = store.get('pin', '');
 if (savedPin) login(savedPin, true); else showScreen('login');
 </script>
